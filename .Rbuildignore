@@ -1,0 +1,9 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^debug_.*\.R$
+^LICENSE\.md$
+^README\.Rmd$
+^codemeta\.json$
+^\.github$
+^doc$
+^Meta$

@@ -1,0 +1,201 @@
+---
+title: "Introduction to causaldef"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to causaldef}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+**causaldef** implements Le Cam deficiency theory to provide decision-theoretic diagnostics for causal inference.
+
+Unlike standard sensitivity analysis tools that output abstract bias parameters (like E-values or partial R²), `causaldef` quantifies the **information gap** ($\delta$) between the data you have throughout your observational study and the data you *wish* you had (a perfect randomized trial).
+
+## The Core Workflow
+
+1.  **Specify**: Define your causal problem using `causal_spec()`.
+2.  **Estimate**: Calculate the deficiency $\delta$ of your adjustment strategy using `estimate_deficiency()`.
+3.  **Diagnose**: Test assumptions with `nc_diagnostic()` or `confounding_frontier()`.
+4.  **Decide**: Compute safety bounds for decision making using `policy_regret_bound()`.
+
+## Example: Gene Perturbation Analysis
+
+We'll use a dataset of gene expression outcomes from a CRISPR knockout experiment. This case study illustrates how to detect unobserved confounding using negative controls.
+
+```{r setup}
+library(causaldef)
+library(ggplot2) # Ensure ggplot2 is loaded
+
+# DAG Helper (using ggplot2 only)
+plot_dag <- function(coords, edges, title = NULL) {
+  edges_df <- merge(edges, coords, by.x = "from", by.y = "name")
+  colnames(edges_df)[c(3,4)] <- c("x_start", "y_start")
+  edges_df <- merge(edges_df, coords, by.x = "to", by.y = "name")
+  colnames(edges_df)[c(5,6)] <- c("x_end", "y_end")
+  
+  ggplot2::ggplot(coords, ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_segment(data = edges_df, ggplot2::aes(x = x_start, y = y_start, xend = x_end, yend = y_end),
+                 arrow = ggplot2::arrow(length = ggplot2::unit(0.3, "cm"), type = "closed"), 
+                 color = "gray40", size = 1, alpha = 0.8) +
+    ggplot2::geom_point(size = 14, color = "white", fill = "#8FBC8F", shape = 21, stroke = 1.5) + # DarkSeaGreen
+    ggplot2::geom_text(ggplot2::aes(label = name), fontface = "bold", size = 2.5, color = "white") +
+    ggplot2::ggtitle(title) + 
+    ggplot2::theme_void(base_size = 14) +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", margin = ggplot2::margin(b = 10))) +
+    ggplot2::coord_fixed()
+}
+
+data(gene_perturbation)
+
+head(gene_perturbation)
+
+# Visualize the Structural Assumption
+coords <- data.frame(
+  name = c("Unobserved", "Knockout", "TargetExpr", "Housekp"),
+  x = c(0, -1.5, 1.5, 0),
+  y = c(1, 0, 0, -1)
+)
+edges <- data.frame(
+  from = c("Unobserved", "Unobserved", "Unobserved", "Knockout"),
+  to =   c("Knockout", "TargetExpr", "Housekp", "TargetExpr")
+)
+plot_dag(coords, edges, title = "Gene Perturbation DAG")
+```
+
+### 1. Specification
+
+We are interested in the effect of `knockout_status` on `target_expression`, adjusting for technical confounders `batch` and `library_size`.
+
+```{r spec}
+spec <- causal_spec(
+  data = gene_perturbation,
+  treatment = "knockout_status",
+  outcome = "target_expression",
+  covariates = c("batch", "library_size"),
+  negative_control = "housekeeping_gene"
+)
+
+print(spec)
+```
+
+### 2. Deficiency Estimation
+
+How close can we get to a randomized experiment using these covariates? The following analysis compares the distributional distance ($\delta$) of the unadjusted observational data against the reweighted data using Inverse Probability Weighting (IPTW). Compare the deficiency values to determine the information gap.
+
+```{r deficiency}
+# Compare unadjusted vs IPTW
+results <- estimate_deficiency(
+  spec,
+  methods = c("unadjusted", "iptw"),
+  n_boot = 50  # Low for vignette speed
+)
+
+print(results)
+plot(results, type = "bar")
+```
+
+**Interpreting Deficiency ($\delta$):**
+
+The deficiency $\delta$ quantifies how far your observational data is from a perfect randomized trial:
+
+- **$\delta$ = 0**: Perfect identification – The weighted propensity distribution matches the target population perfectly (TV distance = 0).
+- **$\delta$ < 0.05**: Excellent – The distribution is indistinguishable from a randomized trial for most practical purposes.
+- **0.05 $\leq$ $\delta$ < 0.15**: Good – Reasonable approximation, but some distributional mismatch exists.
+- **$\delta$ $\geq$ 0.15**: Caution – Substantial information gap (TV distance > 0.15). The "safety floor" for decision making will be significant.
+
+**What to do with these results:**
+
+1. **Choose the method** with the lowest $\delta$ (here, IPTW is better than unadjusted)
+2. **Check the confidence interval** (if bootstrap was used) to assess uncertainty
+3. **If $\delta$ is large**, consider: (a) adding more covariates, (b) using a different adjustment method, or (c) acknowledging the limitation
+
+### 3. Diagnose with Negative Controls
+
+Is the adjustment sufficient? We use the housekeeping gene (which shouldn't change) to test for residual confounding.
+
+```{r diagnosis}
+nc_test <- nc_diagnostic(spec, method = "iptw")
+print(nc_test)
+```
+
+**Interpreting Negative Control Results:**
+
+The negative control diagnostic tests whether your adjustment removes ALL confounding:
+
+- **p-value > 0.05 (Not Falsified)**: [PASS] – No evidence of residual confounding. Your adjustment appears adequate.
+- **p-value $\leq$ 0.05 (Falsified)**: [FAIL] – Evidence of residual confounding detected. Your covariates may not capture all confounders.
+- **delta_nc**: Measures residual association with the negative control. Smaller is better.
+- **delta_bound**: Upper bound on your true deficiency given the negative control results.
+
+**If the test fails:**
+
+1. Add more covariates that might capture hidden confounding
+2. Try different adjustment methods (e.g., AIPW instead of IPTW)
+3. Consider sensitivity analysis to quantify the impact of unmeasured confounding
+4. Acknowledge the limitation in your conclusions
+
+### 4. Decision Making
+
+Suppose we need to decide whether to proceed with this gene target. What is the risk of being wrong due to remaining confounding?
+
+Using `policy_regret_bound()`, we can find the "safety floor" - the minimum regret we must accept given the quality of our evidence ($\delta$).
+
+```{r decision}
+# Utility scale: 0 to 10 (e.g., normalized expression fold-change value)
+bounds <- policy_regret_bound(results, utility_range = c(0, 10))
+
+print(bounds)
+```
+
+**Interpreting Policy Regret Bounds:**
+
+The "safety floor" answers: *"What's the worst-case mistake I could make due to imperfect causal knowledge?"*
+
+- **Safety Floor = 2M$\times$$\delta$**: The minimum unavoidable risk from the information gap
+  - If safety floor = 0.02 on a 0-10 scale, worst-case error is ±0.02 units
+  - This is the "price" you pay for using observational data instead of an RCT
+
+**Decision Rule:**
+
+- **If safety floor < acceptable risk threshold**: Proceed with confidence
+- **If safety floor > acceptable risk threshold**: Either:
+
+  1. Improve your data/adjustment (reduce $\delta$)
+  2. Conduct a randomized trial
+  3. Accept the risk and document it clearly
+
+**Example:** If your gene target could save 5 units of benefit, but the safety floor is 0.5 units, you have a 10:1 benefit-to-risk ratio – likely acceptable.
+
+### 5. Effect Estimation
+
+Finally, once we are confident in our adjustment strategy (low deficiency, passed diagnostics), we can estimate the causal effect.
+
+```{r effect}
+# Estimate ATE using the best performing method (IPTW)
+effect <- estimate_effect(results, target_method = "iptw")
+print(effect)
+```
+
+**Interpreting the Effect Estimate:**
+
+- **estimate**: The average treatment effect (ATE) – the causal impact of the treatment
+- **mu1**: Expected outcome under treatment
+- **mu0**: Expected outcome under control
+- **type**: Type of estimand (ATE, RMST difference, etc.)
+
+**Reporting Guidelines:**
+
+1. Report the effect with the method used: "Using IPTW adjustment, the estimated ATE is..."
+2. Reference the deficiency: "The adjustment achieved $\delta$ = 0.XX, indicating [excellent/good/moderate] approximation to an RCT"
+3. Mention diagnostic results: "The negative control diagnostic [passed/failed], suggesting [adequate/inadequate] control of confounding"
+4. State the safety floor: "The policy regret bound is XX, implying worst-case error of ±XX units"
+
+**Complete Statement Example:**  
+*"Using IPTW adjustment (deficiency $\delta$ = 0.01), we estimate the knockout reduces target expression by 2.3 units (95% CI: [1.8, 2.8]). The negative control diagnostic passed (p = 0.24), and the safety floor is 0.02 units, well below our risk tolerance threshold."*

@@ -1,0 +1,46 @@
+Package: causaldef
+Type: Package
+Title: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency
+Version: 0.1.2
+Authors@R: 
+    person("Deniz", "Akdemir", 
+           email = "deniz.akdemir.work@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-5369-9298"))
+Author: Deniz Akdemir [aut, cre] (<https://orcid.org/0000-0002-5369-9298>)
+Maintainer: Deniz Akdemir <deniz.akdemir.work@gmail.com>
+Description: Implements Le Cam deficiency theory for causal inference,
+    as described in Akdemir (2026) <doi:10.5281/zenodo.18367347>. Provides
+    quantitative bounds on information loss from confounding, selection bias,
+    and distributional shift. Supports continuous, binary, count, survival,
+    and competing risks outcomes. Key features include deficiency estimation,
+    negative control diagnostics, policy regret bounds, and sensitivity
+    analysis via confounding frontiers.
+License: MIT + file LICENSE
+URL: https://github.com/denizakdemir/causaldef,
+    https://denizakdemir.github.io/causaldef/,
+    https://doi.org/10.5281/zenodo.18367347
+BugReports: https://github.com/denizakdemir/causaldef/issues
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends: 
+    R (>= 3.6.0)
+Imports:
+    data.table,
+    checkmate,
+    cli,
+    ggplot2,
+    stats,
+    graphics
+Suggests:
+    survival (>= 3.1.8),
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    roxygen2,
+    usethis
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Language: en-US
