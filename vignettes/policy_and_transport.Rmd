@@ -1,0 +1,174 @@
+---
+title: "Transportability and Policy Learning"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Transportability and Policy Learning}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette demonstrates two advanced applications of the **causaldef** framework:
+1.  **Transportability**: Generalizing experimental results to a new target population.
+2.  **Policy Learning Bounds**: Quantifying the limits of decision-making under confounding.
+
+We utilize classical datasets (**Lalonde NSW** and **Right Heart Catheterization**) to illustrate these concepts.
+
+```{r setup}
+library(causaldef)
+library(stats)
+
+# Helper for plot resizing
+if (!exists("deparse1", envir = baseenv())) {
+  deparse1 <- function(expr, collapse = " ", width.cutoff = 500L, ...) {
+    paste(deparse(expr, width.cutoff, ...), collapse = collapse)
+  }
+}
+```
+
+## 1. Transportability: Lalonde's Job Training
+
+A common challenge in causal inference is **external validity**: Can we apply the results of a Randomized Controlled Trial (RCT) to a diferent target population?
+
+We use the Lalonde dataset to simulate a transportability problem.
+*   **Source Population ($S=1$)**: The NSW experimental participants (typically disjoint from the general population).
+*   **Target Population ($S=0$)**: The CPS comparison group (representative of the broader population).
+
+```{r lalonde-data}
+data("nsw_benchmark")
+
+# Define Source: Experimental Sample
+source_data <- subset(nsw_benchmark, sample_id %in% c("nsw_treated", "nsw_control"))
+
+# Define Target: CPS Control Group (Broader population)
+target_data <- subset(nsw_benchmark, sample_id == "cps_control")
+
+# Covariates available for transport
+transport_vars <- c("age", "education", "black", "hispanic", "married", "nodegree", "re74", "re75")
+
+# Comparison of demographics
+print(summary(source_data[, c("age", "education", "re74")]))
+print(summary(target_data[, c("age", "education", "re74")]))
+```
+The target population (CPS) is significantly wealthier (`re74` mean is much higher) and slightly older. We want to know: *What would be the effect of job training if applied to the CPS population?*
+
+### Transport Deficiency
+We calculate the **Transport Deficiency** $\delta(E_S, E_T)$. This measures how much information is lost due to the distributional shift between Source and Target.
+
+```{r transport-calc}
+# Create causal specification for the SOURCE
+source_spec <- causal_spec(
+  data = source_data,
+  treatment = "treat",
+  outcome = "re78",
+  covariates = transport_vars
+)
+
+# Compute Transport Deficiency
+trans_def <- transport_deficiency(
+  source_spec,
+  target_data = target_data,
+  transport_vars = transport_vars,
+  method = "iptw",
+  n_boot = 50 # Low for vignette speed
+)
+
+print(trans_def)
+plot(trans_def, type = "shift")
+```
+
+**Interpretation**:
+*   **Covariate Shift**: The plot shows which variables differ most (likely `re74` and `re75`).
+*   **Transported ATE**: The estimated effect in the target population.
+*   **Deficiency**: A low delta implies we can reliably transport the result. A high delta warns that the populations are too distinct (lack of overlap or extreme weights).
+
+---
+
+## 2. Policy Learning Bounds: RHC
+
+In **Policy Learning**, we seek an optimal treatment rule $\pi(X)$ to maximize utility. However, with observational data, our estimate of a policy's value is biased by confounding.
+
+We use the **Right Heart Catheterization (RHC)** dataset to evaluate a risk-based policy.
+*   **Decision**: Treat with RHC?
+*   **Outcome**: 30-day Mortality (lower is better).
+*   **Policy**: "Treat only high-risk patients" (e.g., APACHE score > 50).
+
+```{r rhc-setup}
+data("rhc")
+
+# Preprocessing
+if (is.factor(rhc$swang1)) rhc$treat <- as.numeric(rhc$swang1) - 1 else rhc$treat <- rhc$swang1
+if (is.factor(rhc$dth30)) rhc$outcome <- as.numeric(rhc$dth30) - 1 else rhc$outcome <- rhc$dth30
+
+# Variables for adjustment
+covariates <- c("age", "sex", "race", "aps1", "cat1") 
+
+spec_rhc <- causal_spec(
+  data = rhc,
+  treatment = "treat",
+  outcome = "outcome",
+  covariates = covariates
+)
+```
+
+### Policy Evaluation
+We compare two policies:
+1.  **Treat All**: Everyone gets RHC.
+2.  **Risk-Based**: Treat only if APACHE III score (`aps1`) > 50.
+
+We estimate the *observational* value of these policies using IPW.
+
+```{r policy-eval}
+# Estimate propensity scores for adjustment
+ps_model <- glm(treat ~ age + sex + race + aps1 + cat1, data = rhc, family = binomial)
+rhc$ps <- predict(ps_model, type = "response")
+
+# Define policies
+policy_all <- rep(1, nrow(rhc))
+policy_risk <- ifelse(rhc$aps1 > 50, 1, 0)
+
+# Estimate Value (Inverse Propensity Weighted)
+# Value = Mean of Y under policy. We want to MINIMIZE mortality.
+# Equivalent to Maximizing Survival (1 - Y).
+# Let's compute expected mortality.
+
+get_policy_value <- function(policy, treat, outcome, ps) {
+  # IPW estimator for policy value
+  # Weight = I(A = \pi(X)) / P(A|X)
+  w <- (treat == policy) / ifelse(policy == 1, ps, 1 - ps)
+  mean(w * outcome) # Expected Mortality
+}
+
+val_all <- get_policy_value(policy_all, rhc$treat, rhc$outcome, rhc$ps)
+val_risk <- get_policy_value(policy_risk, rhc$treat, rhc$outcome, rhc$ps)
+
+cat("Estimated Mortality (Treat All):", round(val_all, 3), "\n")
+cat("Estimated Mortality (Risk-Based):", round(val_risk, 3), "\n")
+```
+
+### The Safety Floor
+Even if the Risk-Based policy looks better, can we trust it?
+The **Safety Floor** tells us the worst-case error in our value estimate due to unmeasured confounding.
+
+```{r safety-floor}
+# 1. Estimate Deficiency of the dataset
+defom <- estimate_deficiency(spec_rhc, methods = "iptw", n_boot = 0)
+delta <- defom$estimates["iptw"]
+
+# 2. Compute Safety Floor
+# Utility range is [0, 1] (Mortality 0 or 1)
+bounds <- policy_regret_bound(defom, utility_range = c(0, 1))
+
+print(bounds)
+```
+
+**Conclusion**:
+*   The **Safety Floor** represents the *irreducible uncertainty*.
+*   If the difference between `Treat All` and `Risk-Based` is smaller than the safety floor, we cannot be confident the new policy is actually superior to the baseline, regardless of sample size.
+*   This illustrates the fundamental limit of offline policy learning from observational data.
