@@ -1,0 +1,306 @@
+---
+title: "Survival Analysis with causaldef"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Survival Analysis with causaldef}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+eval_surv <- getRversion() >= "4.0.0"
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+**causaldef** supports survival analysis and competing risks. This is critical for clinical applications where "time-to-event" is the primary outcome.
+
+## Survival Specification
+
+We use `causal_spec_survival()` to handle censoring and event times.
+
+```{r setup}
+library(causaldef)
+library(ggplot2) # Ensure ggplot2 is loaded
+
+# DAG Helper
+plot_dag <- function(coords, edges, title = NULL) {
+  edges_df <- merge(edges, coords, by.x = "from", by.y = "name")
+  colnames(edges_df)[c(3,4)] <- c("x_start", "y_start")
+  edges_df <- merge(edges_df, coords, by.x = "to", by.y = "name")
+  colnames(edges_df)[c(5,6)] <- c("x_end", "y_end")
+  
+  ggplot2::ggplot(coords, ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_segment(data = edges_df, ggplot2::aes(x = x_start, y = y_start, xend = x_end, yend = y_end),
+                 arrow = ggplot2::arrow(length = ggplot2::unit(0.3, "cm"), type = "closed"), 
+                 color = "gray40", size = 1, alpha = 0.8) +
+    ggplot2::geom_point(size = 14, color = "white", fill = "#CD5C5C", shape = 21, stroke = 1.5) + # IndianRed
+    ggplot2::geom_text(ggplot2::aes(label = name), fontface = "bold", size = 3.5, color = "white") +
+    ggplot2::ggtitle(title) + 
+    ggplot2::theme_void(base_size = 14) +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", margin = ggplot2::margin(b = 10))) +
+    ggplot2::coord_fixed()
+}
+
+data(hct_outcomes)
+
+head(hct_outcomes)
+```
+
+We want to estimate the effect of `conditioning_intensity` on `time_to_event` for Death, treating "Relapse" as a competing event.
+
+```{r spec, eval = eval_surv}
+spec_surv <- causal_spec_survival(
+  data = hct_outcomes,
+  treatment = "conditioning_intensity",
+  time = "time_to_event",
+  event = "event_status",
+  # Note: The event setup needs binary 0/1 or Surv object logic
+  # We will convert it internally or preprocess
+  covariates = c("age", "disease_status", "kps"),
+  estimand = "ATE" # Difference in survival probability
+)
+```
+
+*Note: In the current version, ensure your event column follows standard R survival conventions (0=censored, 1=event) or use proper factor levels.*
+
+## Analysis of HCT Outcomes: Competing Risks
+
+We will analyze the `hct_outcomes` dataset to estimate the effect of conditioning intensity on the risk of relapse, while accounting for the competing risk of death without relapse.
+
+### Data Preparation
+
+In a competing risks setting, we need to distinguish between the event of interest (Relapse) and the competing event (Death). We create separate indicators for proper specification.
+
+```{r prep, eval = eval_surv}
+# Create indicator for Primary Event (Relapse)
+hct_outcomes$relapse <- ifelse(hct_outcomes$event_status == "Relapse", 1, 0)
+
+# Create indicator for Competing Event (Death)
+# Patients who die without relapse are removed from the risk set for relapse
+# but are NOT merely censored in the same way as loss-to-follow-up.
+hct_outcomes$death_cr <- ifelse(hct_outcomes$event_status == "Death", 1, 0)
+
+# Check the distribution of events
+# Check the distribution of events
+table(hct_outcomes$event_status)
+
+# Visualize Competing Risks
+coords <- data.frame(
+  name = c("Covariates", "CondIntensity", "Relapse", "Death"),
+  x = c(0, -1.5, 1.5, 1.5),
+  y = c(1, 0, 0.5, -0.5)
+)
+edges <- data.frame(
+  from = c("Covariates", "Covariates", "Covariates", "CondIntensity", "CondIntensity"),
+  to =   c("CondIntensity", "Relapse", "Death", "Relapse", "Death")
+)
+plot_dag(coords, edges, title = "Competing Risks Structure")
+```
+
+### Specification
+
+We using `causal_spec_survival()` to fully define the structure, including the competing event.
+
+```{r real_spec, eval = eval_surv}
+spec_hct <- causal_spec_survival(
+  data = hct_outcomes,
+  treatment = "conditioning_intensity",
+  time = "time_to_event",
+  event = "relapse",           # Primary event of interest
+  competing_event = "death_cr", # Competing event
+  covariates = c("age", "disease_status", "kps", "donor_type"),
+  estimand = "ATE"
+)
+
+print(spec_hct)
+```
+
+### Deficiency Estimation
+
+We compare unadjusted analysis (Naive) with Inverse Probability of Treatment Weighting (IPTW) to see if we can reduce the causal deficiency.
+
+```{r real_est, eval = eval_surv}
+# Estimate deficiency
+# Note: In survival settings, this measures how well we can recover the 
+# interventional survival curves.
+results_hct <- estimate_deficiency(
+  spec_hct,
+  methods = c("unadjusted", "iptw"),
+  n_boot = 0 # Set > 0 for bootstrap confidence intervals
+)
+
+print(results_hct)
+```
+
+**Clinical Interpretation of Deficiency:**
+
+The deficiency $\delta$ quantifies how much information is lost by using observational data instead of a randomized trial:
+
+**For this HCT Study:**
+
+- **Unadjusted analysis** (high $\delta$): Observed distribution differs significantly from target population (High TV distance) -> Biased comparison
+- **IPTW adjusted** (lower $\delta$): Reweights patients to balance baseline characteristics (Low TV distance) -> Closer to "what-if-randomized" comparison
+
+**Clinical Significance:**
+
+- **$\delta$ < 0.05**: Excellent control – observational analysis approximates RCT-quality evidence
+- **0.05 $\leq$ $\delta$ < 0.10**: Adequate – reasonable for clinical decision support, acknowledge limitations
+- **$\delta$ $\geq$ 0.10**: Caution – substantial bias risk, consider additional covariates or sensitivity analysis
+
+**Why This Matters:**  
+In HCT, patients receiving myeloablative conditioning are typically younger and healthier (confounding by indication). IPTW attempts to create a "synthetic randomization" by upweighting underrepresented patient types. Low $\delta$ validates this approach.
+
+## Survival Modeling and RMST
+
+To validate our findings and translate them into clinical metrics, we use standard survival models. We calculate the Restricted Mean Survival Time (RMST), which provides an interpretable effect size (difference in life expectancy up to a specific time horizon).
+
+**Why RMST and not Hazard Ratios?**
+In a decision-theoretic framework, we need an estimand that maps directly to a utility function (e.g., "years of life gained"). Hazard Ratios are relative measures that are difficult to translate into absolute utility boundaries ($M$) needed for the safety floor calculation ($2M\delta$). RMST, being on the time scale (e.g., "months gained"), allows us to strictly define $M$ as the time horizon, making the safety guarantees valid and interpretable.
+
+```{r surv_model, message=FALSE, warning=FALSE, eval = eval_surv}
+# 1. Visualize Survival Curves
+# We can use the standard survival package to visualize the unadjusted curves first
+library(survival)
+hct_outcomes$rfs_event <- ifelse(hct_outcomes$event_status != "Censored", 1, 0)
+surv_obj <- Surv(time = hct_outcomes$time_to_event, event = hct_outcomes$rfs_event)
+km_fit_naive <- survfit(surv_obj ~ conditioning_intensity, data = hct_outcomes)
+
+plot(km_fit_naive, col = c("blue", "red"), lwd = 2, 
+     main = "Relapse-Free Survival (Unadjusted)",
+     xlab = "Time (Months)", ylab = "Survival Probability")
+legend("topright", legend = levels(hct_outcomes$conditioning_intensity), 
+       col = c("blue", "red"), lwd = 2)
+
+# 2. Estimate Causal Effect (RMST Difference)
+# We use estimate_effect() on our deficiency object to compute the RMST difference
+# using the IPTW weights we found were effective (low deficiency).
+
+# Horizon = 24 months
+horizon <- 24
+# We reuse the deficiency object (and its learned weights) for the new estimand.
+# Since deficiency measures the distributional match, the same weights apply 
+# to any outcome derived from the survival curve.
+results_hct$spec$estimand <- "RMST"
+results_hct$spec$horizon <- 24 
+
+effect_iptw <- estimate_effect(
+  results_hct, 
+  target_method = "iptw",
+  contrast = c("Myeloablative", "Reduced") # Defined as Treated vs Control
+)
+
+print(effect_iptw)
+
+# Compare with Unadjusted Effect
+effect_naive <- estimate_effect(
+  results_hct, 
+  target_method = "unadjusted",
+  contrast = c("Myeloablative", "Reduced")
+)
+
+print(effect_naive)
+
+cat(sprintf("\nCausal RMST Difference (IPTW): %.2f months\n", effect_iptw$estimate))
+cat(sprintf("Biased RMST Difference (Unadjusted): %.2f months\n", effect_naive$estimate))
+```
+
+**Interpreting RMST (Restricted Mean Survival Time) Results:**
+
+RMST is the average time patients survive (relapse-free) up to the time horizon (here, 24 months). The difference in RMST is the **average survival benefit** of one conditioning regimen over another.
+
+**What These Numbers Mean:**
+
+1. **Unadjusted RMST difference** (biased):
+   - Compares patients as-treated, ignoring baseline imbalances
+   - Confounded by age, disease status, performance status
+   - May overestimate or underestimate true causal effect
+
+2. **IPTW-adjusted RMST difference** (causal estimate):
+   - Balances baseline covariates via weighting
+   - Estimates what the difference would be if patients were randomized
+   - Valid if: (a) no unobserved confounding, (b) positivity holds, (c) correct propensity model
+
+**Clinical Decision-Making:**
+
+- **Positive RMST difference** (Myeloablative > Reduced): Myeloablative conditioning extends relapse-free survival on average
+- **Negative RMST difference** (Reduced > Myeloablative): Reduced conditioning is superior
+- **Magnitude**: Each month of RMST difference represents average survival gain/loss across the population
+
+**Example Interpretation:**  
+If IPTW RMST difference = +2.5 months favoring Myeloablative:  
+*"After adjusting for age, disease status, and comorbidity index, patients receiving myeloablative conditioning had 2.5 additional months of relapse-free survival on average within the first 24 months post-transplant, compared to reduced-intensity conditioning."*
+
+**Caution:**  
+RMST is truncated at the horizon (24 months). Differences beyond 24 months are not captured. Choose the horizon based on clinical relevance (e.g., 1-year, 2-year, 5-year survival).
+
+### Quantifying Uncertainty: Policy Regret Bounds
+
+The RMST difference provides the *observed* treatment effect. However, this is biased if treatment assignment was confounded.
+
+The deficiency $\delta$ we calculated earlier tells us how much we can trust this estimate.
+
+*   If $\delta \approx 0$ (after IPTW), we can interpret the weighted RMST difference as causal.
+*   The "Safety Floor" for our decision is related to $2 \cdot M \cdot \delta$, where $M$ is the maximum possible survival time (or horizon).
+
+```{r safety_floor, eval = eval_surv}
+# Calculate Policy Regret Bound (Safety Floor)
+# Utility range is [0, horizon] (months of survival)
+bound <- policy_regret_bound(results_hct, utility_range = c(0, horizon))
+print(bound)
+```
+
+**Clinical Interpretation of the Safety Floor:**
+
+The safety floor answers: *"What's the worst-case mistake I could make in treatment selection due to using observational data instead of an RCT?"*
+
+**Formula:** Safety Floor = 2 $\times$ M $\times$ $\delta$  
+Where:
+
+- **M** = Maximum possible survival benefit (here, 24 months)
+- **$\delta$** = Deficiency (information gap)
+
+**What It Means:**
+
+Even if you make the optimal decision based on your observational data, you could still be wrong by up to the safety floor amount, purely due to the observational (non-randomized) nature of the evidence.
+
+**Clinical Decision Framework:**
+
+1. **If Safety Floor < 1 month**:  
+   [PASS] **Proceed with confidence** – The observational evidence is RCT-quality. Treatment recommendations are well-supported.
+
+2. **If 1 $\leq$ Safety Floor < 3 months**:  
+   [CAUTION] **Proceed with acknowledgment** – Acceptable for many clinical contexts. Document the limitation: "Based on observational evidence with safety floor of X months..."
+
+3. **If Safety Floor $\geq$ 3 months**:  
+   [STOP] **High uncertainty** – Consider:
+   - Improving adjustment (add covariates, better models)
+   - Conducting a prospective RCT
+   - Using shared decision-making (acknowledge uncertainty to patients)
+   - Limiting recommendations to subgroups with better data
+
+**Example:**  
+If $\delta$ = 0.02 (excellent IPTW performance):  
+Safety Floor = 2 $\times$ 24 $\times$ 0.02 = **0.96 months**
+
+**Interpretation:** Even with perfect decision-making, the observational nature introduces ~1 month of unavoidable uncertainty. If the observed RMST difference is 4 months, the 4:1 benefit-to-risk ratio suggests the decision is robust.
+
+**Reporting to Clinicians:**  
+*"Our observational analysis suggests a 4-month survival advantage for myeloablative conditioning (95% CI: [2.1, 5.9]). The safety floor analysis indicates that the maximum decision error from using observational data is approximately 1 month, well below the observed benefit. This provides strong support for the treatment recommendation, though an RCT would eliminate this residual uncertainty."*
+
+### Connection to Deficiency
+
+The key insight:
+
+- **Low $\delta$** (successful adjustment) -> **Low safety floor** (trustworthy decisions)
+- **High $\delta$** (poor adjustment) -> **High safety floor** (risky decisions)
+
+The deficiency $\delta$ and safety floor work together:
+
+1. **$\delta$** tells you how well you approximated an RCT (information quality)
+2. **Safety floor** tells you the decision risk (clinical consequence)
+
+Both should be reported to provide complete transparency about observational evidence quality.
+

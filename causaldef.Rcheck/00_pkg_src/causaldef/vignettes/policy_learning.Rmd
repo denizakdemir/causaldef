@@ -1,0 +1,309 @@
+---
+title: "Policy Learning with Decision-Theoretic Bounds"
+author: "Deniz Akdemir"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Policy Learning with Decision-Theoretic Bounds}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Introduction
+
+This vignette demonstrates how to use `causaldef` for **safe policy learning** — 
+making treatment decisions with quantified guarantees even when unobserved 
+confounding exists.
+
+The key insight is **Theorem 3.2** (Policy Regret Transfer):
+
+$$\text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + 2M \cdot \delta$$
+
+where:
+- $\text{Regret}_{do}(\pi)$ = regret under the true interventional distribution
+- $\text{Regret}_{obs}(\pi)$ = regret observed in data
+- $M$ = utility range (max - min possible outcomes)
+- $\delta$ = Le Cam deficiency (quantifies confounding)
+
+## The Safety Floor Concept
+
+The term $2M \cdot \delta$ is the **safety floor** — the minimum unavoidable 
+regret no matter how good your algorithm is. If $\delta > 0$, you cannot 
+achieve zero regret.
+
+### Implications for AI/ML Safety
+
+1. **No algorithm can beat the safety floor**: Even infinite data doesn't help 
+   if confounding exists
+2. **Deficiency is the price of observational learning**: To eliminate the 
+   safety floor, you need randomized experiments
+3. **Confidence intervals aren't enough**: Standard ML uncertainty quantification 
+   doesn't capture confounding bias
+
+## Practical Workflow
+
+### Step 1: Define the Causal Problem
+
+```{r define-problem}
+library(causaldef)
+set.seed(123)
+
+# Simulate a treatment decision problem
+n <- 1000
+
+# Covariates
+age <- runif(n, 30, 70)
+severity <- rbeta(n, 2, 5) * 10
+
+# Confounded treatment assignment (sicker patients get treatment)
+U <- rnorm(n)  # Unmeasured health status
+ps_true <- plogis(-1 + 0.02 * age + 0.1 * severity + 0.5 * U)
+A <- rbinom(n, 1, ps_true)
+
+# Outcome: recovery score (0-100)
+# True effect is heterogeneous
+tau_true <- 10 + 0.2 * (age - 50)  # Older patients benefit more
+Y <- 50 + tau_true * A - 0.3 * severity + 5 * U + rnorm(n, sd = 5)
+
+# Clip to valid range
+Y <- pmin(100, pmax(0, Y))
+
+df <- data.frame(
+  age = age,
+  severity = severity,
+  A = A,
+  Y = Y
+)
+```
+
+### Step 2: Estimate Deficiency
+
+```{r estimate-deficiency}
+spec <- causal_spec(
+  data = df,
+  treatment = "A",
+  outcome = "Y",
+  covariates = c("age", "severity")
+)
+
+# Estimate deficiency with multiple methods
+def_results <- estimate_deficiency(
+  spec,
+  methods = c("unadjusted", "iptw", "aipw"),
+  n_boot = 100
+)
+
+print(def_results)
+```
+
+### Step 3: Visualize Deficiency
+
+```{r plot-deficiency, eval=FALSE}
+plot(def_results, type = "bar")
+```
+
+### Step 4: Compute Policy Regret Bounds
+
+```{r policy-bounds}
+# Define utility range (outcome is 0-100)
+utility_range <- c(0, 100)
+
+# Suppose our policy achieves 5% observed regret
+obs_regret <- 5
+
+# Compute bound
+bounds <- policy_regret_bound(
+  deficiency = def_results,
+  utility_range = utility_range,
+  obs_regret = obs_regret
+)
+
+print(bounds)
+```
+
+### Step 5: Visualize the Safety Floor
+
+```{r plot-safety, eval=FALSE}
+# Show how safety floor varies with deficiency
+plot(bounds, type = "safety_curve")
+```
+
+## Interpreting the Results
+
+### The Safety Floor Report
+
+```{r interpret}
+cat("=== Policy Deployment Decision ===\n\n")
+
+delta_best <- min(def_results$estimates)
+safety_floor <- 2 * diff(utility_range) * delta_best
+
+cat(sprintf("Best achievable deficiency: %.3f\n", delta_best))
+cat(sprintf("Safety floor: %.1f points\n", safety_floor))
+cat(sprintf("Observed regret: %.1f points\n", obs_regret))
+
+if (!is.null(bounds$regret_bound)) {
+  cat(sprintf("Worst-case regret: %.1f points\n", bounds$regret_bound))
+}
+
+cat("\n")
+
+# Decision thresholds
+if (delta_best < 0.05) {
+  cat("✓ EXCELLENT: Deficiency < 5%. High confidence in policy.\n")
+} else if (delta_best < 0.10) {
+  cat("⚠ MODERATE: Deficiency 5-10%. Proceed with monitoring.\n")
+} else {
+  cat("✗ CAUTION: Deficiency > 10%. Consider RCT before deployment.\n")
+}
+```
+
+## Sensitivity Analysis with Confounding Frontiers
+
+What if there's additional unmeasured confounding?
+
+```{r confounding-frontier}
+# Map the confounding frontier
+frontier <- confounding_frontier(
+  spec,
+  alpha_range = c(-2, 2),
+  gamma_range = c(-2, 2),
+  grid_size = 30
+)
+
+# Find the safe region
+safe_region <- subset(frontier$grid, delta < 0.1)
+cat(sprintf(
+  "Safe operating region covers %.1f%% of confounding space\n",
+  100 * nrow(safe_region) / nrow(frontier$grid)
+))
+```
+
+### Visualize the Frontier
+
+```{r plot-frontier, eval=FALSE}
+plot(frontier, type = "heatmap", threshold = c(0.05, 0.1, 0.2))
+```
+
+## Policy Learning with grf (Optional)
+
+If you have the `grf` package installed, you can use causal forests for 
+heterogeneous treatment effect estimation with deficiency bounds:
+
+```{r grf-example, eval=FALSE}
+# Estimate deficiency using causal forests
+if (requireNamespace("grf", quietly = TRUE)) {
+  def_grf <- estimate_deficiency(
+    spec,
+    methods = c("aipw", "grf"),
+    n_boot = 50
+  )
+  
+  print(def_grf)
+  
+  # Get individual treatment effect predictions
+  kernel_grf <- def_grf$kernel$grf
+  if (!is.null(kernel_grf$tau_hat)) {
+    cat("\nHeterogeneous Effects Detected:\n")
+    cat(sprintf("ATE from forest: %.2f\n", kernel_grf$ate))
+    cat(sprintf("CATE range: [%.2f, %.2f]\n", 
+                min(kernel_grf$tau_hat), 
+                max(kernel_grf$tau_hat)))
+  }
+}
+```
+
+## Best Practices for Safe Deployment
+
+### Pre-Deployment Checklist
+
+| Check | Threshold | Action if Failed |
+|-------|-----------|------------------|
+| $\delta < 0.05$ | Excellent | Deploy with confidence |
+| $\delta \in [0.05, 0.10]$ | Moderate | Deploy with active monitoring |
+| $\delta > 0.10$ | Concerning | Consider pilot RCT |
+| NC diagnostic falsified | Any | Do not deploy without more data |
+
+### Monitoring in Production
+
+```{r monitoring, eval=FALSE}
+# Example: Re-estimate deficiency on new data
+new_data <- ...  # Your production data
+
+new_spec <- causal_spec(
+  new_data,
+  treatment = "A",
+  outcome = "Y",
+  covariates = c("age", "severity")
+)
+
+# Quick check
+def_monitor <- estimate_deficiency(
+  new_spec,
+  methods = "iptw",
+  n_boot = 50
+)
+
+# Alert if deficiency increased
+if (def_monitor$estimates["iptw"] > 1.5 * delta_best) {
+  warning("Distribution shift detected! Deficiency increased.")
+}
+```
+
+## Mathematical Details
+
+### Theorem 3.2: Policy Regret Transfer
+
+For any policy $\pi$ and bounded utility function $u \in [0, M]$:
+
+$$\mathbb{E}_{P^{do}}\left[\max_a u(a, X) - u(\pi(X), X)\right] \leq 
+\mathbb{E}_{P^{obs}}\left[\max_a u(a, X) - u(\pi(X), X)\right] + 2M\delta$$
+
+**Proof sketch**: The deficiency $\delta$ bounds the total variation distance 
+between the observational and interventional distributions after optimal 
+kernel transformation. Since utility is bounded by $M$, the maximum error 
+in expected utility is at most $M \cdot \text{TV}$. The factor of 2 arises 
+from considering both treatment arms.
+
+### Why This Matters
+
+Traditional ML focuses on:
+- **Prediction error**: How well does my model predict $Y$?
+- **Generalization**: Does performance hold on new data?
+
+But for causal policy learning, we need:
+- **Interventional validity**: Does my policy work when *deployed*?
+- **Confounding robustness**: How much could unmeasured bias hurt me?
+
+The safety floor answers these questions with formal guarantees.
+
+## Summary
+
+| Concept | Definition | Function |
+|---------|------------|----------|
+| Safety Floor | $2M\delta$ — irreducible regret from confounding | `policy_regret_bound()` |
+| Regret Bound | Safety floor + observed regret | `$regret_bound` |
+| Deficiency | Information gap between obs and do | `estimate_deficiency()` |
+| Confounding Frontier | Deficiency as function of $(lpha, \gamma)$ | `confounding_frontier()` |
+
+Use these tools to make **safe, accountable decisions** from observational data.
+
+## References
+
+1. Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison. 
+   DOI: 10.5281/zenodo.18367347. See Theorem 3.2.
+
+2. Athey, S., & Wager, S. (2021). Policy learning with observational data. 
+   *Econometrica*, 89(1), 133-161.
+
+3. Kallus, N. (2020). Confounding-robust policy evaluation in infinite-horizon 
+   reinforcement learning. *NeurIPS*.

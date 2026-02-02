@@ -1,0 +1,302 @@
+---
+title: "Sensitivity Analysis: Deficiency vs. E-values"
+author: "Deniz Akdemir"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Sensitivity Analysis: Deficiency vs. E-values}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>",
+    fig.width = 7,
+    fig.height = 5
+)
+```
+
+## Introduction
+
+Sensitivity analysis answers: **"How strong would unmeasured confounding need 
+to be to change our conclusions?"**
+
+Several frameworks exist:
+
+| Framework | Key Metric | Interpretation |
+|-----------|------------|----------------|
+| **E-value** | Risk ratio needed | "Unmeasured confounder must have RR = X" |
+| **Partial R²** | Variance explained | "Confounder must explain X% of variance" |
+| **Le Cam Deficiency (δ)** | Information loss | "Decision error bounded by 2Mδ" |
+
+This vignette shows how **deficiency-based sensitivity analysis** relates to 
+and extends traditional approaches.
+
+---
+
+## Conceptual Translation
+
+### The E-value Perspective
+
+The E-value (VanderWeele & Ding, 2017) asks:
+
+> "To explain away the observed effect, an unmeasured confounder would need 
+> to have a risk ratio of at least E with both treatment and outcome."
+
+For an observed risk ratio RR, the E-value is:
+
+$$E = RR + \sqrt{RR \times (RR - 1)}$$
+
+### The Deficiency Perspective
+
+Deficiency (δ) takes a decision-theoretic view:
+
+> "Given the information gap between observational and interventional data, 
+> the worst-case decision error is bounded by 2Mδ."
+
+Key insight: **δ directly quantifies policy consequences**, not just 
+statistical associations.
+
+### Conceptual Mapping
+
+| E-value Concept | Deficiency Equivalent |
+|-----------------|----------------------|
+| "Effect explained away" | δ → 1 (maximal deficiency) |
+| "Effect robust" | δ → 0 (zero deficiency) |
+| E-value = 2 | Moderate unmeasured confounding |
+| E-value = 5 | Strong unmeasured confounding |
+
+---
+
+## Practical Example
+
+### Setup
+
+```{r example-setup}
+library(causaldef)
+set.seed(42)
+
+n <- 500
+U <- rnorm(n) # Unmeasured confounder
+W <- 0.7 * U + rnorm(n, sd = 0.5) # Observed covariate
+A <- rbinom(n, 1, plogis(0.5 * U)) # Treatment
+Y <- 2 * A + 1.5 * U + rnorm(n) # Outcome (true effect = 2)
+
+df <- data.frame(W = W, A = A, Y = Y)
+
+spec <- causal_spec(df, "A", "Y", "W")
+```
+
+### Deficiency Estimation
+
+```{r deficiency-calc}
+def_results <- estimate_deficiency(
+    spec,
+    methods = c("unadjusted", "iptw"),
+    n_boot = 100
+)
+
+print(def_results)
+```
+
+### Confounding Frontier
+
+The confounding frontier maps deficiency as a function of confounding strength:
+
+```{r frontier-plot, fig.height=5}
+frontier <- confounding_frontier(
+    spec,
+    alpha_range = c(-3, 3),
+    gamma_range = c(-3, 3),
+    grid_size = 40
+)
+
+plot(frontier)
+```
+
+**Reading the Plot:**
+
+- **X-axis (α)**: Strength of U → A path (treatment selection)
+- **Y-axis (γ)**: Strength of U → Y path (outcome confounding)
+- **Color**: Deficiency δ (darker = larger information loss)
+- **Zero frontier**: The boundary where δ = 0 (perfect identification)
+
+### Policy Regret Bound
+
+```{r policy-bound}
+bounds <- policy_regret_bound(def_results, utility_range = c(0, 10))
+print(bounds)
+```
+
+---
+
+## Comparison with E-values
+
+### Computing an Approximate E-value
+
+For comparison, we can compute the E-value for our effect estimate:
+
+```{r evalue-calculation}
+# Effect estimate
+effect <- estimate_effect(def_results, target_method = "iptw")
+print(effect)
+
+# For E-value calculation, we need to convert to risk ratio scale
+# This is an approximation; exact E-values require binary outcomes
+# Here we use the standardized effect size
+
+# Assuming effect is on continuous scale, we can compute
+# a pseudo-risk ratio via effect size transformation
+effect_se <- 1 # Approximate SE (would be from bootstrap in practice)
+effect_est <- effect$estimate
+t_stat <- effect_est / effect_se
+
+# Approximate conversion to OR (for conceptual illustration)
+# Using Chinn's (2000) formula for approximate OR from mean difference
+approx_or <- exp(effect_est / 1.81)
+
+# E-value formula
+if (approx_or > 1) {
+    e_value <- approx_or + sqrt(approx_or * (approx_or - 1))
+} else {
+    e_value <- 1 / approx_or + sqrt(1 / approx_or * (1 / approx_or - 1))
+}
+
+cat(sprintf("
+Approximate E-value: %.2f
+
+Interpretation: To explain away the observed effect, an unmeasured
+confounder would need a risk ratio of at least %.2f with both
+treatment and outcome.
+", e_value, e_value))
+```
+
+### Deficiency vs. E-value: Key Differences
+
+| Aspect | E-value | Deficiency (δ) |
+|--------|---------|----------------|
+| **Scale** | Risk ratio | Total variation distance |
+| **Interpretation** | Strength needed to "explain away" | Information loss for decisions |
+| **Decision utility** | Abstract | Direct (via 2Mδ bound) |
+| **Multi-method** | Single estimate | Compares strategies |
+| **Negative controls** | Not integrated | Built-in diagnostics |
+
+### When to Use Each
+
+**Use E-values when:**
+- Communicating to epidemiologists/clinicians familiar with RR
+- Binary outcomes with clear risk ratio interpretation
+- Want a single summary number
+
+**Use Deficiency (δ) when:**
+- Need decision-theoretic bounds (policy regret)
+- Comparing multiple adjustment strategies
+- Have negative control outcomes available
+- Working with non-binary outcomes (continuous, survival)
+- Need to combine with sensitivity frontiers
+
+---
+
+## Extended Sensitivity Analysis
+
+### Benchmarking Observed Covariates
+
+A key advantage of the frontier approach is **benchmarking**: we can 
+see where observed covariates fall on the confounding map.
+
+```{r benchmark}
+# Add more covariates for benchmarking
+df$W2 <- 0.3 * U + rnorm(n, sd = 0.8)
+df$W3 <- 0.9 * U + rnorm(n, sd = 0.3)
+
+spec_multi <- causal_spec(df, "A", "Y", c("W", "W2", "W3"))
+
+frontier_bench <- confounding_frontier(
+    spec_multi,
+    grid_size = 40
+)
+
+# Access benchmarks
+if (!is.null(frontier_bench$benchmarks)) {
+    print(frontier_bench$benchmarks)
+}
+```
+
+**Using Benchmarks:**
+
+The benchmarks show the inferred confounding strength of each observed 
+covariate. If an unmeasured confounder would need to be "stronger than W3" 
+(which we know explains 81% of U's variance), conclusions are robust.
+
+### Combining with Negative Controls
+
+```{r full-analysis}
+# Add negative control
+df$Y_nc <- U + rnorm(n, sd = 0.5) # Affected by U, not by A
+
+spec_full <- causal_spec(
+    df, "A", "Y", c("W", "W2", "W3"),
+    negative_control = "Y_nc"
+)
+
+# Complete analysis
+def_full <- estimate_deficiency(
+    spec_full,
+    methods = c("unadjusted", "iptw"),
+    n_boot = 100
+)
+
+nc_full <- nc_diagnostic(spec_full, method = "iptw", n_boot = 100)
+
+print(def_full)
+print(nc_full)
+```
+
+---
+
+## Summary: Unified Sensitivity Analysis
+
+The `causaldef` approach provides a **unified** framework:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     SENSITIVITY ANALYSIS                         │
+├─────────────────────────────────────────────────────────────────┤
+│  confounding_frontier()                                          │
+│    → Maps δ as function of confounding strength (α, γ)          │
+│    → Benchmarks observed covariates as reference points         │
+├─────────────────────────────────────────────────────────────────┤
+│  nc_diagnostic()                                                 │
+│    → Empirical falsification test                               │
+│    → Bounds δ using observable negative control                 │
+├─────────────────────────────────────────────────────────────────┤
+│  policy_regret_bound()                                           │
+│    → Translates δ into decision-theoretic consequences          │
+│    → Safety floor = 2Mδ (worst-case regret)                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Key Advantages:**
+
+1. **Decision-theoretic meaning**: δ bounds actual regret, not just association strength
+2. **Multi-method comparison**: See which adjustment does best
+3. **Empirical validation**: Negative controls test assumptions
+4. **Visual sensitivity**: Frontiers show robustness at a glance
+
+---
+
+## References
+
+1. Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison. 
+   DOI: 10.5281/zenodo.18367347
+
+2. VanderWeele, T. J., & Ding, P. (2017). Sensitivity Analysis in Observational 
+   Research: Introducing the E-value. Annals of Internal Medicine.
+
+3. Cinelli, C., & Hazlett, C. (2020). Making Sense of Sensitivity: Extending 
+   Omitted Variable Bias. JRSS-B.
+
+4. Torgersen, E. (1991). Comparison of Statistical Experiments. Cambridge 
+   University Press.

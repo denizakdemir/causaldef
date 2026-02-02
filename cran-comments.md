@@ -6,5 +6,12 @@
 
 * This is a new submission.
 
+## Responses to CRAN Feedback
+* Fixed invalid ORCID iD for author.
+* Removed invalid URLs (404) and updated DOI usage.
+* Fixed Rd syntax error (lost braces in confounding_frontier.Rd).
+* Added README.html, cran-comments.md, and data-raw to .Rbuildignore.
+* "Akdemir" is the author's surname.
+
 ## Downstream dependencies
 There are no downstream dependencies.
