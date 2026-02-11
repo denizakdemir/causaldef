@@ -14,6 +14,18 @@ test_that("nc_diagnostic returns correct class", {
   expect_true("p_value" %in% names(result))
 })
 
+test_that("nc_diagnostic works with factor treatments", {
+  df <- .simulate_with_nc(200, seed = 1)
+  df$A <- factor(ifelse(df$A == 1, "Treated", "Control"))
+  
+  spec <- causal_spec(df, "A", "Y", "W", negative_control = "Y_nc")
+  result <- nc_diagnostic(spec, method = "iptw", n_boot = 20)
+  
+  expect_s3_class(result, "nc_diagnostic")
+  expect_true(is.numeric(result$delta_nc))
+  expect_true(result$delta_nc >= 0 && result$delta_nc <= 1)
+})
+
 test_that("nc_diagnostic requires negative control", {
   df <- .simulate_backdoor(100, seed = 1)
   spec <- causal_spec(df, "A", "Y", "W")  # No negative control
@@ -27,7 +39,7 @@ test_that("nc_diagnostic requires negative control", {
 test_that("nc_diagnostic detects confounding violation", {
   # Strong confounding should be detectable
   df <- .simulate_with_nc(500, alpha = 2, gamma_y = 2, gamma_nc = 2, seed = 42)
-  spec <- causal_spec(df, "A", "Y", "W", negative_control = "Y_nc")
+  spec <- suppressWarnings(causal_spec(df, "A", "Y", "W", negative_control = "Y_nc"))
   
   # Without proper adjustment, should show high NC deficiency
   result_unadj <- nc_diagnostic(spec, method = "unadjusted", n_boot = 50)
@@ -65,4 +77,37 @@ test_that("print.nc_diagnostic works", {
   result <- nc_diagnostic(spec, method = "iptw", n_boot = 10)
   
   expect_output(print(result), "Negative Control")
+})
+
+test_that("nc_diagnostic supports sensitivity sweep", {
+  df <- .simulate_with_nc(200, seed = 1)
+  spec <- causal_spec(df, "A", "Y", "W", negative_control = "Y_nc")
+  
+  result <- nc_diagnostic(spec, method = "iptw", 
+                          kappa_range = seq(0.5, 2.0, by = 0.5),
+                          n_boot = 20)
+  
+  expect_true("sensitivity" %in% names(result))
+  expect_equal(nrow(result$sensitivity), 4)
+  expect_s3_class(result, "nc_diagnostic_sensitivity")
+  
+  # Verify bounds are correctly computed
+  expect_equal(result$sensitivity$delta_bound[1], 
+               0.5 * result$delta_nc, tolerance = 0.001)
+  expect_equal(result$sensitivity$delta_bound[4], 
+               2.0 * result$delta_nc, tolerance = 0.001)
+})
+
+test_that("plot.nc_diagnostic_sensitivity works", {
+  skip_if_not_installed("ggplot2")
+  
+  df <- .simulate_with_nc(200, seed = 1)
+  spec <- causal_spec(df, "A", "Y", "W", negative_control = "Y_nc")
+  
+  result <- nc_diagnostic(spec, method = "iptw",
+                          kappa_range = seq(0.5, 2.0, by = 0.25),
+                          n_boot = 20)
+  
+  p <- plot(result)
+  expect_s3_class(p, "ggplot")
 })

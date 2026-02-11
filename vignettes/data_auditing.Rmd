@@ -1,0 +1,229 @@
+---
+title: "Automated Data Auditing for Causal Studies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Automated Data Auditing for Causal Studies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+Before diving into causal estimation, a critical but often overlooked step is **data auditing**: systematically checking which variables in your dataset might introduce bias, confounding, or estimation problems.
+
+The `audit_data()` function in **causaldef** automates this process by testing each variable against the treatment and outcome to classify its causal role.
+
+## Why Audit Your Data?
+
+Traditional exploratory data analysis (EDA) tools check for:
+- Missing values
+- Distributional skew
+- Outliers
+
+But they miss **causal validity** issues:
+- Which variables are confounders that MUST be adjusted for?
+- Which variables are potential instruments?
+- Which variables might serve as negative controls?
+- Which variables are "leaky" and could bias your analysis?
+
+Based on the manuscript's negative control certification/bounding logic (`thm:nc_bound`), `audit_data()` systematically evaluates each variable.
+
+## Case Study: Right Heart Catheterization (RHC)
+
+We'll demonstrate data auditing using the classic **RHC dataset** from Connors et al. (1996). This dataset contains 5,735 critically ill patients from 5 medical centers, with the treatment being Right Heart Catheterization (RHC) and the outcome being 30-day mortality.
+
+This is an ideal case study because:
+- **Medium size**: n = 5,735 patients
+- **Many covariates**: p = 63 variables
+- **Real confounding concerns**: RHC is not randomly assigned
+- **Clinical importance**: Used extensively in causal inference literature
+
+```{r setup}
+library(causaldef)
+
+# Load the RHC dataset
+data(rhc)
+
+cat("Dataset dimensions:", nrow(rhc), "patients,", ncol(rhc), "variables\n")
+```
+
+### Understanding the Research Question
+
+**Treatment**: `swang1` - Whether the patient received Right Heart Catheterization (1 = Yes, 0 = No)
+
+**Outcome**: `death` - 30-day mortality (Yes/No)
+
+**Covariates**: Demographics, disease category, vital signs, lab values, comorbidities, etc.
+
+```{r explore}
+# Key variables
+cat("Treatment distribution (swang1 = RHC):\n")
+table(rhc$swang1)
+
+cat("\nOutcome distribution (death):\n")
+table(rhc$death)
+```
+
+## Running the Data Audit
+
+Let's audit all available variables to understand which ones are most relevant for causal analysis.
+
+```{r audit}
+# Prepare data - convert death to numeric for auditing
+rhc_clean <- rhc
+rhc_clean$death_num <- as.numeric(rhc_clean$death == "Yes")
+
+# Select relevant numeric and factor columns for audit
+# (excluding IDs, dates, and the outcome/treatment themselves)
+exclude_cols <- c("X", "ptid", "sadmdte", "dschdte", "dthdte", "lstctdte",
+                  "swang1", "death", "death_num")
+audit_cols <- setdiff(names(rhc_clean), exclude_cols)
+
+# Run the audit
+report <- audit_data(
+  data = rhc_clean,
+  treatment = "swang1",
+  outcome = "death_num",
+  covariates = audit_cols[1:25],  # First 25 covariates for demonstration
+  alpha = 0.01,  # Stricter significance level
+  verbose = FALSE
+)
+
+print(report)
+```
+
+### Interpreting the Report
+
+The audit classifies each variable into one of these categories:
+
+| Classification | Meaning | Action |
+|----------------|---------|--------|
+| **Confounder** | Correlates with BOTH treatment and outcome | MUST adjust for this |
+| **Potential Instrument** | Correlates with treatment but NOT outcome | Consider for IV analysis |
+| **Outcome Predictor** | Correlates with outcome but NOT treatment | Include for precision |
+| **Safe** | No significant correlations | Can include or exclude |
+
+## Examining Detected Issues
+
+Let's look more closely at the flagged confounders:
+
+```{r confounders}
+# Filter to see only confounders
+confounders <- report$issues[report$issues$issue_type == "Confounder", ]
+if (nrow(confounders) > 0) {
+  cat("Detected Confounders (must adjust for these):\n\n")
+  print(confounders[, c("variable", "r_treatment", "r_outcome", "p_value")])
+}
+```
+
+These variables show significant correlation with both the treatment decision (whether a patient receives RHC) and the outcome (mortality). Failing to adjust for these would introduce **confounding bias**.
+
+## Clinical Interpretation
+
+The audit results make clinical sense:
+
+1. **Disease severity indicators** (like APACHE score `aps1`, vital signs) should correlate with both:
+   - Sicker patients are more likely to receive RHC (treatment)
+   - Sicker patients are more likely to die (outcome)
+
+2. **Demographics** (age, comorbidities) follow similar patterns
+
+3. **Some variables** correlate only with outcome (predictors of mortality but not of treatment selection)
+
+## Comparing Audit Results Across Subsets
+
+Let's see how the audit differs across patient subgroups:
+
+```{r subgroup}
+# Audit cardiac patients only
+cardiac_patients <- rhc_clean[rhc_clean$card == 1, ]
+
+if (nrow(cardiac_patients) > 50) {
+  report_cardiac <- audit_data(
+    data = cardiac_patients,
+    treatment = "swang1",
+    outcome = "death_num",
+    covariates = audit_cols[1:15],
+    alpha = 0.01,
+    verbose = FALSE
+  )
+  
+  cat("=== Cardiac Patients Subgroup ===\n")
+  cat("Sample size:", nrow(cardiac_patients), "\n")
+  cat("Issues found:", report_cardiac$summary_stats$n_issues, "\n")
+  cat("Confounders:", report_cardiac$summary_stats$n_confounders, "\n")
+}
+```
+
+## Using Audit Results for Causal Analysis
+
+Once you've identified confounders through the audit, use them in your causal specification:
+
+```{r spec}
+# Get the list of detected confounders
+confounder_vars <- report$issues$variable[report$issues$issue_type == "Confounder"]
+
+# If we have confounders, build a proper causal specification
+if (length(confounder_vars) > 0) {
+  # Use detected confounders in causal spec
+  spec <- causal_spec(
+    data = rhc_clean,
+    treatment = "swang1",
+    outcome = "death_num",
+    covariates = confounder_vars
+  )
+  
+  print(spec)
+}
+```
+
+## Full Audit Summary
+
+```{r summary}
+# Summary statistics from the audit
+cat("\n=== Audit Summary ===\n")
+cat("Variables audited:", report$summary_stats$n_vars_audited, "\n")
+cat("Total issues:", report$summary_stats$n_issues, "\n")
+cat("  - Confounders:", report$summary_stats$n_confounders, "\n")
+cat("  - Potential instruments:", report$summary_stats$n_instruments, "\n")
+```
+
+## Best Practices for Data Auditing
+
+1. **Run audit early**: Before any causal analysis, audit your data to understand variable roles
+
+2. **Use domain knowledge**: The audit identifies statistical associations; combine with clinical/domain expertise
+
+3. **Adjust significance level**: 
+   - Use stricter `alpha` (e.g., 0.01) for larger datasets to reduce false positives
+   - Use looser `alpha` (e.g., 0.10) for smaller samples to catch potential confounders
+
+4. **Audit subgroups**: Confounding patterns may differ across patient populations
+
+5. **Document decisions**: Record which variables you adjust for and why
+
+6. **Iterate**: After initial analysis, re-audit to check if additional variables should be included
+
+## Conclusion
+
+The `audit_data()` function provides an automated first pass at identifying causal structure in your dataset. It answers key questions:
+
+- **What must I adjust for?** → Confounders
+- **What might help with identification?** → Potential instruments  
+- **What improves precision?** → Outcome predictors
+- **What's safe to ignore?** → Variables with no causal role
+
+This systematic approach helps ensure your causal analysis is built on a solid foundation, reducing the risk of confounding bias and improving the reliability of your conclusions.
+
+## References
+
+- Connors, A.F. et al. (1996). The Effectiveness of Right Heart Catheterization in the Initial Care of Critically Ill Patients. *JAMA*, 276(11), 889-897.
+
+- Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison. Negative control certification/bounding (`thm:nc_bound`).

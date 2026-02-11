@@ -17,11 +17,10 @@
 #' @importFrom cli cli_abort cli_alert_danger cli_alert_info cli_alert_success
 #'   cli_alert_warning cli_progress_bar cli_progress_done cli_progress_update
 #'   cli_warn
-#' @importFrom data.table as.data.table data.table
 ## usethis namespace: end
 NULL
 
-# Global variables to suppress R CMD check NOTEs for data.table/ggplot2 NSE
+# Global variables to suppress R CMD check NOTEs for ggplot2 NSE
 utils::globalVariables(c(
     "covariate", "alpha", "gamma", "delta",
     "variable", "shift_metric", "severity", "weight"

@@ -4,7 +4,7 @@
 \alias{.deficiency_gaussian}
 \title{Compute Deficiency for Linear Gaussian SCM}
 \usage{
-.deficiency_gaussian(alpha, gamma, sigma_A, sigma_Y, C = 0.25)
+.deficiency_gaussian(alpha, gamma, sigma_A, sigma_Y)
 }
 \arguments{
 \item{alpha}{Numeric: U -> A confounding strength}
@@ -14,13 +14,13 @@
 \item{sigma_A}{Numeric: noise standard deviation for A}
 
 \item{sigma_Y}{Numeric: noise standard deviation for Y}
-
-\item{C}{Numeric: constant (default 0.25)}
 }
 \value{
 Numeric: deficiency lower bound
 }
 \description{
-Implements Theorem 4.1: \eqn{\delta \ge C|\alpha\gamma| / \sqrt{(1+\alpha^2/\sigma_A^2)(1+\gamma^2/\sigma_Y^2)}}
+Computes a rigorous Le Cam two-point lower bound for the confounding lower bound
+theorem in the manuscript (\code{thm:confounding_lb}) in the linear Gaussian setting
+(with an implicit normalization \eqn{|a|\le 1}).
 }
 \keyword{internal}

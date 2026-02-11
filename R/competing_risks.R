@@ -10,9 +10,16 @@
 #' @param data Data frame containing the variables
 #' @param treatment Character: name of the treatment variable
 #' @param time Character: name of the time-to-event variable
-#' @param event Character: name of the event indicator (0 = censored, 1+ = event type)
+#' @param event Character: name of the event indicator.
+#'   Accepts either:
+#'   \itemize{
+#'     \item a numeric code with \code{0 = censored} and \code{1,2,...} indicating event types, or
+#'     \item a factor/character (e.g., \code{"Death"}, \code{"Relapse"}, \code{"Censored"}), which will
+#'       be mapped to integer codes with \code{"Censored"} (case-insensitive) and \code{"0"} treated as censored.
+#'   }
 #' @param covariates Character vector: names of covariate variables
-#' @param event_of_interest Integer: which event type is the primary outcome (default 1)
+#' @param event_of_interest Integer or character: which event type is the primary outcome (default 1).
+#'   If \code{event} is factor/character, you may pass the label (e.g., \code{"Death"}).
 #' @param horizon Numeric: time horizon for cumulative incidence
 #' @param estimand Character: "cif" (cumulative incidence) or "cshr" (cause-specific HR)
 #'
@@ -72,7 +79,11 @@ causal_spec_competing <- function(data, treatment, time, event,
   checkmate::assert_string(time)
   checkmate::assert_string(event)
   checkmate::assert_character(covariates, null.ok = TRUE)
-  checkmate::assert_integerish(event_of_interest, lower = 1)
+  if (is.character(event_of_interest)) {
+    checkmate::assert_string(event_of_interest)
+  } else {
+    checkmate::assert_integerish(event_of_interest, lower = 1)
+  }
   checkmate::assert_number(horizon, lower = 0, null.ok = TRUE)
   
   # Check variables exist
@@ -82,8 +93,63 @@ causal_spec_competing <- function(data, treatment, time, event,
     cli::cli_abort("Variables not found in data: {.val {missing_vars}}")
   }
   
-  # Extract event types
-  event_vec <- data[[event]]
+  # Extract and normalize event codes:
+  # - numeric codes: 0=censored, 1+ event types
+  # - factor/character: map labels to 1..K, with "Censored"/"0" as 0.
+  event_vec_raw <- data[[event]]
+  event_map <- NULL
+  event_levels <- NULL
+  
+  if (is.factor(event_vec_raw) || is.character(event_vec_raw)) {
+    event_chr <- tolower(as.character(event_vec_raw))
+    censored <- is.na(event_chr) | event_chr %in% c("censored", "censor", "0", "")
+    event_levels <- sort(unique(event_chr[!censored]))
+    
+    if (length(event_levels) == 0) {
+      cli::cli_abort(c(
+        "Event column {.val {event}} contains no non-censored events after coercion.",
+        "i" = "Provide a numeric event code (0=censored, 1+ event types) or a factor/character with non-censored levels."
+      ))
+    }
+    
+    event_map <- stats::setNames(seq_along(event_levels), event_levels)
+    event_vec <- ifelse(censored, 0L, unname(event_map[event_chr]))
+    data[[event]] <- as.integer(event_vec)
+    
+    # Allow event_of_interest as a label
+    if (is.character(event_of_interest)) {
+      eoi_key <- tolower(event_of_interest)
+      if (!(eoi_key %in% names(event_map))) {
+        cli::cli_abort(c(
+          "Event of interest {.val {event_of_interest}} not found in {.val {event}}.",
+          "i" = "Available event labels: {.val {names(event_map)}}"
+        ))
+      }
+      event_of_interest <- unname(event_map[[eoi_key]])
+    }
+  } else if (is.numeric(event_vec_raw) || is.integer(event_vec_raw) || is.logical(event_vec_raw)) {
+    if (is.character(event_of_interest)) {
+      cli::cli_abort(c(
+        "event_of_interest was provided as a label ({.val {event_of_interest}}) but {.val {event}} is numeric.",
+        "i" = "Provide event_of_interest as an integer code (e.g., 1) or pass a factor/character event column."
+      ))
+    }
+    event_vec <- as.integer(event_vec_raw)
+    if (any(is.na(event_vec))) {
+      # Missing values treated as censored
+      event_vec[is.na(event_vec)] <- 0L
+      data[[event]] <- event_vec
+    }
+    if (any(event_vec < 0)) {
+      cli::cli_abort("Event column {.val {event}} must be non-negative (0=censored, 1+ event types).")
+    }
+  } else {
+    cli::cli_abort(c(
+      "Unsupported type for event column {.val {event}}.",
+      "i" = "Provide a numeric event code (0=censored, 1+ event types) or a factor/character with a 'Censored' level."
+    ))
+  }
+  
   event_types <- sort(unique(event_vec[event_vec > 0]))
   n_events <- length(event_types)
   
@@ -121,6 +187,8 @@ causal_spec_competing <- function(data, treatment, time, event,
       event_of_interest = event_of_interest,
       event_types = event_types,
       n_events = n_events,
+      event_map = event_map,
+      event_levels = event_levels,
       horizon = horizon,
       estimand = estimand,
       treatment_type = treatment_type,
@@ -364,9 +432,24 @@ print.causal_spec_competing <- function(x, ...) {
   cli::cli_text("Treatment: {.val {x$treatment}} ({x$treatment_type})")
   cli::cli_text("Time: {.val {x$time}}")
   cli::cli_text("Event: {.val {x$event}}")
-  cli::cli_text("Event of interest: {.val {x$event_of_interest}} of {.val {x$n_events}} types")
+  if (!is.null(x$event_map)) {
+    # Show label if available
+    inv_map <- stats::setNames(names(x$event_map), as.character(unname(x$event_map)))
+    eoi_label <- inv_map[[as.character(x$event_of_interest)]]
+    if (!is.null(eoi_label) && nzchar(eoi_label)) {
+      cli::cli_text("Event of interest: {.val {x$event_of_interest}} ({.val {eoi_label}}) of {.val {x$n_events}} types")
+    } else {
+      cli::cli_text("Event of interest: {.val {x$event_of_interest}} of {.val {x$n_events}} types")
+    }
+  } else {
+    cli::cli_text("Event of interest: {.val {x$event_of_interest}} of {.val {x$n_events}} types")
+  }
   cli::cli_text("Horizon: {.val {round(x$horizon, 2)}}")
   cli::cli_text("Estimand: {.val {x$estimand}}")
+  
+  if (!is.null(x$event_map)) {
+    cli::cli_text("Event mapping: {paste(names(x$event_map), '->', unname(x$event_map), collapse = ', ')}")
+  }
   
   if (!is.null(x$covariates)) {
     cli::cli_text("Covariates: {.val {x$covariates}}")

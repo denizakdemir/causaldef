@@ -4,14 +4,25 @@
 \alias{nc_diagnostic}
 \title{Negative Control Diagnostic}
 \usage{
-nc_diagnostic(spec, method = "iptw", kappa = NULL, alpha = 0.05, n_boot = 200)
+nc_diagnostic(
+  spec,
+  method = "iptw",
+  kappa = NULL,
+  kappa_range = NULL,
+  alpha = 0.05,
+  n_boot = 200
+)
 }
 \arguments{
 \item{spec}{A causal_spec with negative_control specified}
 
 \item{method}{Character: adjustment method to test}
 
-\item{kappa}{Numeric: alignment constant (NULL = use 1.0 as conservative default)}
+\item{kappa}{Numeric: alignment constant in the theoretical bound. If \code{NULL},
+defaults to 1 (conservative).}
+
+\item{kappa_range}{Numeric vector: range of kappa values for sensitivity analysis.
+If provided, returns bounds for each kappa and adds class "nc_diagnostic_sensitivity".}
 
 \item{alpha}{Numeric: significance level for falsification test}
 
@@ -25,6 +36,7 @@ Object of class "nc_diagnostic" containing:
 \item falsified: Logical indicating if assumptions are falsified
 \item p_value: P-value for falsification test
 \item kappa: Alignment constant used
+\item sensitivity: (if kappa_range provided) data.frame with bounds for each kappa
 }
 }
 \description{
@@ -46,6 +58,10 @@ A negative control outcome Y' is a variable that:
 If adjustment correctly removes confounding, the residual association
 between A and Y' should be zero. Non-zero association indicates
 confounding remains.
+
+When kappa is unknown, use kappa_range to perform sensitivity analysis
+across plausible values. The resulting plot shows how the deficiency
+bound varies with the sensitivity parameter.
 }
 \examples{
 # Create data with negative control
@@ -59,14 +75,21 @@ df <- data.frame(W = W, A = A, Y = Y, Y_nc = Y_nc)
 
 spec <- causal_spec(df, "A", "Y", "W", negative_control = "Y_nc")
 \donttest{
+# Standard diagnostic
 nc_result <- nc_diagnostic(spec, method = "iptw", n_boot = 50)
 print(nc_result)
+
+# Sensitivity analysis
+nc_sens <- nc_diagnostic(spec, method = "iptw", 
+                         kappa_range = seq(0.5, 2.0, by = 0.25),
+                         n_boot = 50)
+plot(nc_sens)
 }
 
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-DOI: 10.5281/zenodo.18367347. See Theorem 5.2 for theoretical details.
+DOI: 10.5281/zenodo.18367347. See \code{thm:nc_bound} (Negative Control Sensitivity Bound).
 
 Lipsitch, M., Tchetgen, E., & Cohen, T. (2010). Negative controls: A tool
 for detecting confounding and bias. Epidemiology, 21(3), 383-388.

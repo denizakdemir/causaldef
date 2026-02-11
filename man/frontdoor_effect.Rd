@@ -52,7 +52,8 @@ a mediator M when:
 The front-door formula is:
 \deqn{P(Y|do(a)) = \sum_m P(M=m|A=a) \sum_{a'} P(Y|M=m, A=a') P(A=a')}
 
-When these assumptions hold, Theorem 2.2 guarantees delta = 0.
+When these assumptions hold, the manuscript's Front-Door Kernel Existence theorem
+(\code{thm:frontdoor}) implies \eqn{\delta = 0}.
 }
 \examples{
 # Simulate front-door scenario
@@ -73,7 +74,7 @@ print(fd_result)
 \references{
 Pearl, J. (1995). Causal diagrams for empirical research. Biometrika.
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-See Theorem 2.2.
+See \code{thm:frontdoor} (Front-Door Kernel Existence).
 }
 \seealso{
 \code{\link[=estimate_deficiency]{estimate_deficiency()}}, \code{\link[=causal_spec]{causal_spec()}}

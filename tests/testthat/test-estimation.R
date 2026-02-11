@@ -19,6 +19,11 @@ test_that("estimate_effect works for standard data", {
   eff_iptw <- estimate_effect(def, target_method = "iptw")
   expect_true(abs(eff_iptw$estimate - 2) < 0.5)
   expect_equal(eff_iptw$type, "ATE")
+
+  # Alias: `method` (preferred API)
+  eff_iptw_alias <- estimate_effect(def, method = "iptw")
+  expect_equal(eff_iptw_alias$estimate, eff_iptw$estimate)
+  expect_equal(eff_iptw_alias$type, eff_iptw$type)
 })
 
 
@@ -76,4 +81,3 @@ test_that("estimate_effect falls back to simple fit if not RMST", {
   expect_equal(eff$type, "Survival Curve")
   expect_s3_class(eff$fit, "survfit")
 })
-

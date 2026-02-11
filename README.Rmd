@@ -13,15 +13,28 @@ knitr::opts_chunk$set(
 )
 ```
 
-# causaldef: Decision-Theoretic Causal Diagnostics
+# causaldef
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN status](https://www.r-pkg.org/badges/version/causaldef)](https://CRAN.R-project.org/package=causaldef)
 <!-- badges: end -->
 
 **causaldef** implements Le Cam deficiency theory for causal inference, providing quantitative bounds on information loss from confounding, selection bias, and distributional shift.
 
 Unlike traditional sensitivity analysis which focuses on "how much bias" exists, `causaldef` answers the decision-theoretic question: **"how much regret"** might we incur by acting on this evidence?
+
+## Key Concept: Deficiency (δ)
+
+The **deficiency** δ is a theoretical measure of the information gap between your observational data and a perfect randomized trial.
+In practice, `causaldef` provides a **computable proxy** \(\widehat{\delta}\) based on propensity-score TV balance (PS-TV), which is informative about overlap/positivity and residual confounding risk.
+
+For bounded utilities with range \(M\) (max minus min), the manuscript provides:
+
+- a **regret transfer penalty** (upper bound term) of \(M\cdot \delta\), and
+- a minimax **safety floor** (lower bound) of \((M/2)\cdot \delta\).
+
+`policy_regret_bound()` reports both quantities.
 
 ## Installation
 
@@ -34,11 +47,11 @@ devtools::install_github("denizakdemir/causaldef")
 
 ## Core Features
 
--   **Deficiency Estimation**: Quantify the distance $\delta$ between your observational data and the ideal interventional experiment.
--   **Policy Regret Bounds**: Compute the "safety floor" - the minimum unavoidable regret due to confounding.
--   **Negative Control Diagnostics**: Formal hypothesis tests for causal assumptions using auxiliary outcomes.
--   **Confounding Frontiers**: Visualize the boundary between identified and unidentified regions.
--   **Survival Analysis**: Support for time-to-event outcomes (RMST, Hazard Ratios).
+- **Deficiency proxies:** `estimate_deficiency()` (PS-TV overlap/balance proxy)
+- **Policy regret bounds:** `policy_regret_bound()` (transfer penalty + minimax floor)
+- **Negative control diagnostics:** `nc_diagnostic()` (falsification and bounds)
+- **Sensitivity analysis:** `confounding_frontier()` (linear-Gaussian confounding frontier)
+- **Survival + competing risks:** `causal_spec_survival()`, `causal_spec_competing()`
 
 ## Example 1: Basic Deficiency Estimation
 
@@ -61,7 +74,7 @@ spec <- causal_spec(
   covariates = "W"
 )
 
-# 2. Estimate Le Cam deficiency for different strategies
+# 2. Estimate a deficiency proxy (PS-TV) for different strategies
 results <- estimate_deficiency(
   spec, 
   methods = c("unadjusted", "iptw", "aipw"),
@@ -70,6 +83,8 @@ results <- estimate_deficiency(
 
 print(results)
 ```
+
+**Interpretation:** Unadjusted \(\widehat{\delta} \approx\) `r round(results$estimates["unadjusted"], 3)`; after IPTW/AIPW, \(\widehat{\delta} \approx\) `r round(min(results$estimates[c("iptw","aipw")]), 3)`.
 
 ## Example 2: Policy Regret Bounds
 
@@ -82,6 +97,8 @@ bounds <- policy_regret_bound(results, utility_range = c(0, 1))
 print(bounds)
 plot(bounds, type = "safety_curve")
 ```
+
+The plug-in transfer penalty is `r round(bounds$transfer_penalty, 4)` on a 0--1 utility scale; the minimax safety floor is `r round(bounds$minimax_floor, 4)`.
 
 ## Example 3: Negative Control Diagnostic
 
@@ -104,12 +121,51 @@ nc_test <- nc_diagnostic(spec_nc, method = "iptw")
 print(nc_test)
 ```
 
+Here, the test does not reject (p = `r signif(nc_test$p_value, 3)`), and the observable proxy is \(\widehat{\delta}_{NC} \approx\) `r round(nc_test$delta_nc, 3)`.
+
+## Example 4: Survival Analysis (HCT)
+
+```{r survival}
+data(hct_outcomes)
+
+# Create an explicit 0/1 event indicator (any non-censor event)
+hct <- hct_outcomes
+hct$event_any <- as.integer(hct$event_status != "Censored")
+
+spec_surv <- causal_spec_survival(
+  data = hct,
+  treatment = "conditioning_intensity",
+  time = "time_to_event",
+  event = "event_any",
+  covariates = c("age", "disease_status", "kps", "donor_type"),
+  estimand = "RMST",
+  horizon = 24
+)
+
+def_surv <- estimate_deficiency(spec_surv, methods = c("unadjusted", "cox_iptw"), n_boot = 50)
+print(def_surv)
+
+bounds_surv <- policy_regret_bound(def_surv, utility_range = c(0, 24))
+print(bounds_surv)
+```
+
 ## Theory
 
 Based on Akdemir (2026), ["Constraints on Causal Inference as Experiment Comparison"](https://doi.org/10.5281/zenodo.18367347).
 
 The core theorem links the deficiency $\delta$ (Total Variation distance) to the max-min regret:
 
-$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + 2M \cdot \delta $$
+$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M \cdot \delta $$
 
-Where $M$ is the range of the utility function. This provides a rigorous justification for using observational evidence in high-stakes decision making, provided $\delta$ is small.
+Where $M$ is the range of the utility function. In practice, the package provides plug-in bounds by feeding a computable proxy/estimate (e.g., $\widehat{\delta}$) into the regret formula.
+
+## Citation
+
+```bibtex
+@misc{causaldef,
+  title = {causaldef: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency},
+  author = {Akdemir, Deniz},
+  year = {2026},
+  doi = {10.5281/zenodo.18367347}
+}
+```

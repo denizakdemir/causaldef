@@ -22,11 +22,18 @@ causal_spec_competing(
 
 \item{time}{Character: name of the time-to-event variable}
 
-\item{event}{Character: name of the event indicator (0 = censored, 1+ = event type)}
+\item{event}{Character: name of the event indicator.
+Accepts either:
+\itemize{
+\item a numeric code with \code{0 = censored} and \code{1,2,...} indicating event types, or
+\item a factor/character (e.g., \code{"Death"}, \code{"Relapse"}, \code{"Censored"}), which will
+be mapped to integer codes with \code{"Censored"} (case-insensitive) and \code{"0"} treated as censored.
+}}
 
 \item{covariates}{Character vector: names of covariate variables}
 
-\item{event_of_interest}{Integer: which event type is the primary outcome (default 1)}
+\item{event_of_interest}{Integer or character: which event type is the primary outcome (default 1).
+If \code{event} is factor/character, you may pass the label (e.g., \code{"Death"}).}
 
 \item{horizon}{Numeric: time horizon for cumulative incidence}
 

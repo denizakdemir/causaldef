@@ -21,7 +21,7 @@ test_that("TV distance deficiency behaves correctly", {
   A <- rbinom(n, 1, plogis(3 * W)) 
   Y <- A + W + rnorm(n)
   df_bad <- data.frame(W = W, A = A, Y = Y)
-  spec_bad <- causal_spec(df_bad, "A", "Y", "W")
+  spec_bad <- suppressWarnings(causal_spec(df_bad, "A", "Y", "W"))
   
   res_bad <- estimate_deficiency(spec_bad, methods = c("unadjusted", "iptw"), n_boot = 0, verbose = FALSE)
   

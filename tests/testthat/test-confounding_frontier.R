@@ -27,8 +27,8 @@ test_that("confounding_frontier creates correct grid", {
   expect_true("delta" %in% names(frontier$grid))
 })
 
-test_that("confounding_frontier follows Theorem 4.1", {
-  # Theorem 4.1: delta >= C * |alpha * gamma| / denominator
+test_that("confounding_frontier follows confounding lower bound behavior", {
+  # Confounding lower bound: delta increases with |alpha*gamma| and is ~0 near alpha=0 or gamma=0
   # Use odd grid size to include alpha=0 and gamma=0 exactly
   frontier <- confounding_frontier(
     alpha_range = c(-2, 2),

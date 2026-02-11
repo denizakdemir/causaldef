@@ -23,7 +23,12 @@ print.causal_spec <- function(x, ...) {
 
 #' @export
 print.deficiency <- function(x, ...) {
-  cat("\n-- Le Cam Deficiency Estimates ", paste(rep("-", 40), collapse = ""), "\n\n", sep = "")
+  title <- if (!is.null(x$metric) && identical(x$metric, "ps_tv")) {
+    "Deficiency Proxy Estimates (PS-TV)"
+  } else {
+    "Deficiency Proxy Estimates"
+  }
+  cat("\n-- ", title, " ", paste(rep("-", max(0, 40 - nchar(title))), collapse = ""), "\n\n", sep = "")
   
   # Create results table
   results_df <- data.frame(
@@ -44,12 +49,16 @@ print.deficiency <- function(x, ...) {
   })
 
   print(results_df, row.names = FALSE)
-  
+
+  if (!is.null(x$metric) && identical(x$metric, "ps_tv")) {
+    cat("Note: delta is a propensity-score TV proxy (overlap/balance diagnostic).\n")
+  }
+
   # Best method
   best_idx <- which.min(x$estimates)
-  cat("\nBest method:", names(x$estimates)[best_idx], 
+  cat("\nBest method:", names(x$estimates)[best_idx],
       "(delta =", round(x$estimates[best_idx], 4), ")\n")
-  
+
   invisible(x)
 }
 
@@ -57,7 +66,7 @@ print.deficiency <- function(x, ...) {
 print.nc_diagnostic <- function(x, ...) {
   cat("\n-- Negative Control Diagnostic ", paste(rep("-", 40), collapse = ""), "\n\n", sep = "")
   cat("* delta_NC (observable):", round(x$delta_nc, 4), "\n")
-  cat("* delta bound (Theorem 5.2):", round(x$delta_bound, 4), "(kappa =", x$kappa, ")\n")
+  cat("* delta bound (NC bound):", round(x$delta_bound, 4), "(kappa =", x$kappa, ")\n")
   cat("* p-value:", format.pval(x$p_value), "\n\n")
   
   if (x$falsified) {
@@ -72,25 +81,68 @@ print.nc_diagnostic <- function(x, ...) {
 
 #' @export
 print.policy_bound <- function(x, ...) {
-  cat("\n-- Policy Regret Bound (Theorem 3.2) ", paste(rep("-", 35), collapse = ""), "\n\n", sep = "")
+  cat("\n-- Policy Regret Bounds ", paste(rep("-", 49), collapse = ""), "\n\n", sep = "")
   cat("* Deficiency delta:", round(x$delta, 4), "\n")
+  if (!is.null(x$delta_mode)) {
+    mode_label <- if (identical(x$delta_mode, "upper")) "upper CI" else "point"
+    cat("* Delta mode:", mode_label, "\n")
+  }
+  if (!is.null(x$delta_method) && nzchar(x$delta_method)) {
+    cat("* Delta method:", x$delta_method, "\n")
+  }
   cat("* Utility range: [", x$utility_range[1], ", ", x$utility_range[2], "]\n", sep = "")
-  cat("* Safety floor:", round(x$safety_floor, 4), "(minimum regret given delta)\n")
-  
+  if (!is.null(x$transfer_penalty)) {
+    cat("* Transfer penalty:", round(x$transfer_penalty, 4), "(additive regret upper bound)\n")
+  } else {
+    cat("* Transfer penalty:", round(x$safety_floor, 4), "(additive regret upper bound)\n")
+  }
+  if (!is.null(x$minimax_floor)) {
+    cat("* Minimax floor:", round(x$minimax_floor, 4), "(worst-case lower bound)\n")
+  }
+  if (!is.null(x$complexity_penalty)) {
+    cat("* Complexity penalty:", round(x$complexity_penalty, 4), "(VC / finite-sample term)\n")
+  }
+
   if (!is.null(x$obs_regret)) {
     cat("\n* Observed regret:", round(x$obs_regret, 4), "\n")
     cat("* Interventional bound:", round(x$regret_bound, 4), "\n")
   }
   
-  pct <- round(100 * x$safety_floor / x$M, 1)
-  cat("\nInterpretation: Worst-case regret is", pct, "% of utility range due to confounding\n\n")
+  penalty <- if (!is.null(x$transfer_penalty)) x$transfer_penalty else x$safety_floor
+  pct <- round(100 * penalty / x$M, 1)
+  cat("\nInterpretation: Transfer penalty is", pct, "% of utility range given delta\n\n")
   
   invisible(x)
 }
 
 #' @export
+print.partial_id_set <- function(x, ...) {
+  cat("\n-- Partial Identification Set ", paste(rep("-", 46), collapse = ""), "\n\n", sep = "")
+  cat("* Estimand:", x$estimand, "\n")
+  cat("* Point estimate:", round(x$estimate, 6), "\n")
+  cat("* Delta:", round(x$delta, 6), "\n")
+  cat("* Half-width:", round(x$half_width, 6), "\n")
+  cat("* Interval: [", round(x$lower, 6), ", ", round(x$upper, 6), "]\n\n", sep = "")
+  invisible(x)
+}
+
+#' @export
+print.overlap_diagnostic <- function(x, ...) {
+  cat("\n-- Overlap Diagnostic ", paste(rep("-", 52), collapse = ""), "\n\n", sep = "")
+  cat("* n:", x$n, "\n")
+  cat("* trim:", x$trim, "\n")
+  cat("* extreme ps count:", x$extreme_n, "\n")
+  cat("* kept after trim:", x$kept_n, "\n")
+  cat("* ESS (IPTW):", round(x$ess_iptw, 2), "\n")
+  cat("\nPropensity quantiles:\n")
+  print(round(x$ps_summary, 4))
+  cat("\n")
+  invisible(x)
+}
+
+#' @export
 print.confounding_frontier <- function(x, ...) {
-  cat("\n-- Confounding Frontier (Theorem 4.1) ", paste(rep("-", 35), collapse = ""), "\n\n", sep = "")
+  cat("\n-- Confounding Frontier (Confounding Lower Bound) ", paste(rep("-", 26), collapse = ""), "\n\n", sep = "")
   cat("* Grid size:", x$params$grid_size, "x", x$params$grid_size, "\n")
   cat("* alpha range: [", x$params$alpha_range[1], ", ", x$params$alpha_range[2], "]\n", sep = "")
   cat("* gamma range: [", x$params$gamma_range[1], ", ", x$params$gamma_range[2], "]\n", sep = "")
@@ -106,6 +158,46 @@ print.confounding_frontier <- function(x, ...) {
   n_identified <- sum(x$grid$delta < 0.01)
   pct_identified <- round(100 * n_identified / nrow(x$grid), 1)
   cat(pct_identified, "% of grid has near-zero deficiency (delta < 0.01)\n\n")
+  
+  invisible(x)
+}
+
+#' @export
+print.data_audit_report <- function(x, ...) {
+  cat("\n")
+  cat("==============================================================================\n")
+  cat("                         Data Integrity Report\n")
+  cat("==============================================================================\n\n")
+  
+  cat("Treatment:", x$treatment, "| Outcome:", x$outcome, "\n")
+  cat("Variables audited:", x$summary_stats$n_vars_audited, "\n")
+  cat("Issues found:", x$summary_stats$n_issues, "\n\n")
+  
+  if (nrow(x$issues) > 0) {
+    # Filter to show only significant issues (not "Safe")
+    significant <- x$issues[!x$issues$issue_type %in% c("Safe", "Valid Negative Control"), ]
+    
+    if (nrow(significant) > 0) {
+      cat("-- Issues Detected ", paste(rep("-", 50), collapse = ""), "\n\n", sep = "")
+      
+      # Print table
+      display <- data.frame(
+        Variable = significant$variable,
+        Type = significant$issue_type,
+        `p-value` = format.pval(significant$p_value, digits = 3),
+        Recommendation = significant$recommendation,
+        check.names = FALSE
+      )
+      print(display, row.names = FALSE, right = FALSE)
+      cat("\n")
+    }
+  }
+  
+  cat("-- Recommendations ", paste(rep("-", 50), collapse = ""), "\n\n", sep = "")
+  for (rec in x$recommendations) {
+    cat("*", rec, "\n")
+  }
+  cat("\n")
   
   invisible(x)
 }

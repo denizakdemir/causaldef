@@ -29,7 +29,7 @@ Several frameworks exist:
 |-----------|------------|----------------|
 | **E-value** | Risk ratio needed | "Unmeasured confounder must have RR = X" |
 | **Partial R²** | Variance explained | "Confounder must explain X% of variance" |
-| **Le Cam Deficiency (δ)** | Information loss | "Decision error bounded by 2Mδ" |
+| **Le Cam Deficiency (δ)** | Information loss | "Transfer penalty bounded by $M\delta$" |
 
 This vignette shows how **deficiency-based sensitivity analysis** relates to 
 and extends traditional approaches.
@@ -54,7 +54,7 @@ $$E = RR + \sqrt{RR \times (RR - 1)}$$
 Deficiency (δ) takes a decision-theoretic view:
 
 > "Given the information gap between observational and interventional data, 
-> the worst-case decision error is bounded by 2Mδ."
+> the worst-case regret inflation term is bounded by $M\delta$ (and there is a minimax floor $(M/2)\delta$)."
 
 Key insight: **δ directly quantifies policy consequences**, not just 
 statistical associations.
@@ -179,7 +179,7 @@ treatment and outcome.
 |--------|---------|----------------|
 | **Scale** | Risk ratio | Total variation distance |
 | **Interpretation** | Strength needed to "explain away" | Information loss for decisions |
-| **Decision utility** | Abstract | Direct (via 2Mδ bound) |
+| **Decision utility** | Abstract | Direct (via $M\delta$ transfer penalty) |
 | **Multi-method** | Single estimate | Compares strategies |
 | **Negative controls** | Not integrated | Built-in diagnostics |
 
@@ -274,7 +274,7 @@ The `causaldef` approach provides a **unified** framework:
 ├─────────────────────────────────────────────────────────────────┤
 │  policy_regret_bound()                                           │
 │    → Translates δ into decision-theoretic consequences          │
-│    → Safety floor = 2Mδ (worst-case regret)                     │
+│    → Transfer penalty = Mδ; minimax floor = (M/2)δ              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

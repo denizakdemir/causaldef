@@ -6,13 +6,7 @@
 \alias{causaldef-package}
 \title{causaldef: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency}
 \description{
-Implements Le Cam deficiency theory for causal inference,
-    as described in Akdemir (2026) <doi:10.5281/zenodo.18367347>. Provides
-    quantitative bounds on information loss from confounding, selection bias,
-    and distributional shift. Supports continuous, binary, count, survival,
-    and competing risks outcomes. Key features include deficiency estimation,
-    negative control diagnostics, policy regret bounds, and sensitivity
-    analysis via confounding frontiers.
+Implements Le Cam deficiency theory for causal inference, as described in Akdemir (2026) \doi{10.5281/zenodo.18367347}. Provides quantitative bounds on information loss from confounding, selection bias, and distributional shift. Supports continuous, binary, count, survival, and competing risks outcomes. Key features include deficiency estimation, negative control diagnostics, policy regret bounds, and sensitivity analysis via confounding frontiers.
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison: A Framework for Identification, Transportability, and Policy Learning. DOI: 10.5281/zenodo.18367347

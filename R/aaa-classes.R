@@ -181,3 +181,26 @@ new_confounding_frontier <- function(grid, frontier = NULL, model, params) {
     class = "confounding_frontier"
   )
 }
+
+# =============================================================================
+# Class: data_audit_report - Data integrity audit results
+# =============================================================================
+
+#' @title Create a New Data Audit Report Object
+#' @description Internal constructor for data_audit_report class
+#' @keywords internal
+#' @noRd
+new_data_audit_report <- function(issues, recommendations, summary_stats,
+                                   treatment, outcome, spec = NULL) {
+  structure(
+    list(
+      issues = issues,
+      recommendations = recommendations,
+      summary_stats = summary_stats,
+      treatment = treatment,
+      outcome = outcome,
+      spec = spec
+    ),
+    class = "data_audit_report"
+  )
+}

@@ -7,15 +7,23 @@
 \usage{
 estimate_effect(object, ...)
 
-\method{estimate_effect}{deficiency}(object, target_method = NULL, contrast = NULL, ...)
+\method{estimate_effect}{deficiency}(
+  object,
+  target_method = NULL,
+  method = NULL,
+  contrast = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{deficiency} object returned by \code{estimate_deficiency()}}
 
 \item{...}{Additional arguments passed to specific estimators}
 
-\item{target_method}{Character: which adjustment method to use. If NULL, defaults
-to the method with the lowest estimated deficiency.}
+\item{target_method}{Deprecated alias for \code{method}.}
+
+\item{method}{Character: which adjustment method to use. If \code{NULL}, defaults to
+the method with the lowest estimated deficiency.}
 
 \item{contrast}{Vector: c(treated, control) values for contrast.
 Defaults to c(treatment_value, control_value).}

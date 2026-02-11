@@ -21,8 +21,8 @@ test_that("backdoor kernel achieves δ ≈ 0 when identified", {
   expect_lt(result$estimates["aipw"], 0.15)
 })
 
-test_that("deficiency increases with confounding (Theorem 4.1)", {
-  # Test the theoretical formula from Theorem 4.1 directly
+test_that("deficiency increases with confounding (thm:confounding_lb)", {
+  # Test the theoretical formula implied by the manuscript's confounding lower bound directly
   # rather than the SMD proxy which has no signal without covariates
   gammas <- c(0.5, 1.0, 2.0, 4.0)
   alpha <- 1.0
@@ -31,7 +31,7 @@ test_that("deficiency increases with confounding (Theorem 4.1)", {
   
   # Use the internal deficiency formula
   deltas <- vapply(gammas, function(gamma) {
-    causaldef:::.deficiency_gaussian(alpha, gamma, sigma_A, sigma_Y, C = 0.25)
+    causaldef:::.deficiency_gaussian(alpha, gamma, sigma_A, sigma_Y)
   }, numeric(1))
   
   # Deficiency should monotonically increase with gamma

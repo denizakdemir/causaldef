@@ -89,23 +89,15 @@
 #' Right Heart Catheterization (RHC) in the management of critically ill patients.
 #' This dataset is a classic example of high-dimensional confounding in medical observational studies.
 #'
-#' @format A data frame with 5735 rows and 63 variables. Key variables include:
-#' \describe{
-#'   \item{swang1}{Treatment: Right Heart Catheterization (RHC) vs No RHC}
-#'   \item{dth30}{Outcome: 30-day mortality (Yes/No)}
-#'   \item{t3d30}{Survival time up to 30 days}
-#'   \item{age}{Age}
-#'   \item{sex}{Sex}
-#'   \item{race}{Race}
-#'   \item{cat1}{Primary disease category}
-#'   \item{apache}{APACHE III score (illness severity)}
-#'   \item{...}{50+ other covariates measuring physiological status}
-#' }
+#' @format A data frame with 5735 rows and 63 variables.
 #' 
 #' @details 
 #' The original study found that RHC was associated with higher mortality, contradicting 
 #' potential benefits. Careful adjustment for the rich set of covariates (indicating sickness severity) 
 #' is required. This dataset serves as a testbed for sensitivity analysis and policy bounds.
+#'
+#' Key variables include \code{swang1} (treatment), \code{dth30} (30-day mortality),
+#' \code{t3d30} (survival time up to 30 days), and \code{aps1} (APACHE III score).
 #'
 #' @references
 #' Connors, A. F., Speroff, T., Dawson, N. V., Thomas, C., Harrell, F. E., Wagner, D., ... & Goldman, L. (1996). 

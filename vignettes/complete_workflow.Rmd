@@ -160,14 +160,16 @@ bounds_gene <- policy_regret_bound(
 print(bounds_gene)
 ```
 
-**The Safety Floor:**
+**Regret Bounds:**
 
-The safety floor = 2 × M × δ represents the *worst-case decision error* 
-from using observational data instead of a randomized experiment.
+`policy_regret_bound()` reports:
+
+- **Transfer penalty** \(M\cdot\delta\): additive worst-case regret inflation term, and
+- **Minimax safety floor** \((M/2)\cdot\delta\): irreducible worst-case regret when \(\delta>0\).
 
 **Decision Rule:**
-- If `safety_floor` < acceptable risk threshold → **Proceed with confidence**
-- If `safety_floor` > acceptable risk threshold → **Seek more evidence**
+- If `transfer_penalty` < acceptable risk threshold → **Proceed with confidence**
+- If `transfer_penalty` > acceptable risk threshold → **Seek more evidence**
 
 ### 1.6 Effect Estimation
 
@@ -192,7 +194,8 @@ cat(sprintf(
 **Treatment Effect (IPTW-adjusted):** %.2f log2 expression units
 **Deficiency (δ):** %.3f
 **Negative Control Test:** %s (p = %.3f)
-**Safety Floor:** %.3f on [0, 10] scale
+**Transfer Penalty:** %.3f on [0, 10] scale
+**Minimax Safety Floor:** %.3f on [0, 10] scale
 
 **Conclusion:** %s
 ",
@@ -200,10 +203,11 @@ cat(sprintf(
     deficiency_gene$estimates["iptw"],
     ifelse(nc_test$falsified, "FAILED", "PASSED"),
     nc_test$p_value,
-    bounds_gene$safety_floor["iptw"],
+    bounds_gene$transfer_penalty,
+    bounds_gene$minimax_floor,
     ifelse(nc_test$falsified,
         "Residual confounding detected. Interpret with caution.",
-        ifelse(bounds_gene$safety_floor["iptw"] < 0.5,
+        ifelse(bounds_gene$transfer_penalty < 0.5,
             "Strong evidence supporting treatment effect.",
             "Moderate evidence; consider additional validation."
         )
@@ -315,13 +319,15 @@ bounds_hct <- policy_regret_bound(
 print(bounds_hct)
 ```
 
-**Clinical Safety Floor:**
+**Clinical Regret Bounds:**
 
 If δ = 0.05 with M = 24 months:
-- Safety Floor = 2 × 24 × 0.05 = **2.4 months**
+- Transfer penalty = 24 × 0.05 = **1.2 months**
+- Minimax safety floor = 0.5 × 24 × 0.05 = **0.6 months**
 
 This means even with perfect decision-making, the observational evidence 
-introduces up to 2.4 months of uncertainty in expected survival gain.
+can inflate regret by up to about 1.2 months on the 0--24 month utility scale, and
+there is an unavoidable worst-case floor of about 0.6 months when $\delta>0$.
 
 ```{r effect-hct}
 # Estimate RMST difference
@@ -338,7 +344,8 @@ print(effect_hct)
 
 ```{r decision-hct, results='asis'}
 delta_iptw <- deficiency_hct$estimates["iptw"]
-safety_floor <- bounds_hct$safety_floor["iptw"]
+transfer_penalty <- bounds_hct$transfer_penalty
+minimax_floor <- bounds_hct$minimax_floor
 rmst_diff <- effect_hct$estimate
 
 # Decision logic
@@ -351,8 +358,8 @@ if (delta_iptw < 0.05) {
 }
 
 # Benefit-to-risk ratio
-if (!is.na(rmst_diff) && !is.na(safety_floor) && safety_floor > 0) {
-    benefit_to_risk <- abs(rmst_diff) / safety_floor
+if (!is.na(rmst_diff) && !is.na(transfer_penalty) && transfer_penalty > 0) {
+    benefit_to_risk <- abs(rmst_diff) / transfer_penalty
     recommendation <- ifelse(benefit_to_risk > 2,
         "Recommend treatment with stronger effect",
         "Evidence inconclusive; consider shared decision-making"
@@ -369,7 +376,8 @@ cat(sprintf(
 **RMST Difference (IPTW):** %.2f months (%s favored)
 **Deficiency:** %.3f
 **Evidence Quality:** %s
-**Safety Floor:** %.2f months
+**Transfer Penalty:** %.2f months
+**Minimax Safety Floor:** %.2f months
 
 **Benefit-to-Risk Ratio:** %.1f:1
 **Recommendation:** %s
@@ -379,20 +387,21 @@ cat(sprintf(
 The observational evidence suggests %s conditioning provides approximately
 %.1f additional months of relapse-free survival within the first 2 years.
 
-However, this comes with a safety floor of %.1f months—the maximum possible
-decision error from using observational rather than randomized evidence.
-Clinicians should weigh this against individual patient factors.
+However, the transfer penalty is %.1f months and the minimax safety floor is %.1f months
+on the 0--24 month utility scale. Clinicians should weigh this against individual patient factors.
 ",
     abs(rmst_diff),
     ifelse(rmst_diff > 0, "Myeloablative", "Reduced"),
     delta_iptw,
     evidence_quality,
-    safety_floor,
+    transfer_penalty,
+    minimax_floor,
     benefit_to_risk,
     recommendation,
     ifelse(rmst_diff > 0, "myeloablative", "reduced-intensity"),
     abs(rmst_diff),
-    safety_floor
+    transfer_penalty,
+    minimax_floor
 ))
 ```
 
@@ -402,8 +411,8 @@ Clinicians should weigh this against individual patient factors.
 
 ### 3.1 When Is Observational Evidence Sufficient?
 
-| Study | δ (IPTW) | Safety Floor | Evidence Quality |
-|-------|----------|--------------|------------------|
+| Study | δ (IPTW) | Transfer Penalty | Evidence Quality |
+|-------|----------|------------------|------------------|
 | Gene Perturbation | Low (~0.01) | Very Low | Excellent |
 | HCT Outcomes | Moderate (~0.05-0.15) | 1-4 months | Acceptable with caveats |
 
@@ -423,7 +432,7 @@ Clinicians should weigh this against individual patient factors.
 │            ↓ Map sensitivity to unmeasured confounding          │
 ├─────────────────────────────────────────────────────────────────┤
 │  DECIDE: policy_regret_bound() + estimate_effect()              │
-│          ↓ Compute safety floor for decisions                   │
+│          ↓ Compute transfer penalty / minimax floor             │
 │          ↓ Report effect with uncertainty qualification         │
 └─────────────────────────────────────────────────────────────────┘
 ```

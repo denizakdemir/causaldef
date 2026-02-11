@@ -2,7 +2,7 @@
 % Please edit documentation in R/deficiency.R
 \name{estimate_deficiency}
 \alias{estimate_deficiency}
-\title{Estimate Le Cam Deficiency}
+\title{Estimate a Deficiency Proxy (PS-TV)}
 \usage{
 estimate_deficiency(
   spec,
@@ -41,24 +41,35 @@ estimate_deficiency(
 \value{
 Object of class "deficiency" containing:
 \itemize{
-\item estimates: Named vector of \eqn{\delta} estimates per method
+\item estimates: Named vector of deficiency proxy estimates per method
 \item se: Standard errors (if n_boot > 0)
 \item ci: Confidence intervals
 \item method: Methods used
 \item kernel: Fitted kernels for each method
+\item metric: Identifier for the proxy metric used
 }
 }
 \description{
-Computes the deficiency \eqn{\delta(E_{obs}, E_{do})} between observational and
-interventional experiments under various adjustment strategies.
+Computes a \emph{computable proxy} for the (population) Le Cam deficiency between
+observational and interventional regimes under various adjustment strategies.
 }
 \details{
-The Le Cam deficiency quantifies the information gap:
+The (population) Le Cam deficiency is defined as:
 \deqn{\delta(\mathcal{E}_{obs}, \mathcal{E}_{do}) =
       \inf_K \sup_\theta ||KP^{obs}_\theta - P^{do}_\theta||_{TV}}
 
-When \eqn{\delta = 0}, perfect causal identification is possible.
-When \eqn{\delta > 0}, some information loss is unavoidable.
+This quantity is not directly estimable nonparametrically from finite samples
+without additional structure. The current implementation returns a proxy based on
+the total variation distance between \emph{propensity-score distributions} under:
+\enumerate{
+\item the method-induced reweighting (pseudo-population), and
+\item the unweighted target population.
+}
+This PS-TV proxy is an overlap/balance diagnostic: values near 0 indicate near-perfect
+balance under the estimated propensity model, while large values flag positivity/overlap issues.
+
+Importantly, this is a \emph{proxy} and should not be interpreted as the exact Le Cam deficiency
+unless supplemented by a result linking the proxy to the specific decision class of interest.
 }
 \examples{
 # Create sample data

@@ -159,6 +159,36 @@ test_that("causal_spec_competing creates valid object", {
   expect_equal(spec$n_events, 2)
 })
 
+test_that("causal_spec_competing maps factor events and accepts label event_of_interest", {
+  skip_if_not_installed("survival")
+  
+  set.seed(42)
+  n <- 200
+  W <- rnorm(n)
+  A <- rbinom(n, 1, plogis(0.3 * W))
+  
+  time_1 <- rexp(n, rate = exp(-0.5 * A))
+  time_2 <- rexp(n, rate = exp(0.3 * A))
+  time_c <- runif(n, 0, 3)
+  
+  obs_time <- pmin(time_1, time_2, time_c)
+  event_chr <- ifelse(obs_time == time_1, "Death",
+    ifelse(obs_time == time_2, "Relapse", "Censored")
+  )
+  
+  df <- data.frame(W = W, A = A, time = obs_time, event = factor(event_chr))
+  
+  spec <- causal_spec_competing(df, "A", "time", "event", "W", event_of_interest = "Death")
+  
+  expect_true(is.integer(spec$data$event) || is.numeric(spec$data$event))
+  expect_true(all(spec$data$event %in% c(0, 1, 2)))
+  expect_equal(spec$event_of_interest, 1)
+  expect_equal(spec$n_events, 2)
+  expect_true(!is.null(spec$event_map))
+  expect_equal(names(spec$event_map), c("death", "relapse"))
+  expect_equal(unname(spec$event_map), c(1, 2))
+})
+
 test_that("estimate_deficiency_competing returns deficiency object", {
   skip_if_not_installed("survival")
   

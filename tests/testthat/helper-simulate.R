@@ -12,7 +12,7 @@
   data.frame(W = W, A = A, Y = Y)
 }
 
-#' Simulate confounded data (Theorem 4.1 setup)
+#' Simulate confounded data (linear Gaussian confounding setup)
 #' @noRd
 .simulate_confounded <- function(n, alpha = 1, gamma = 1, beta = 1, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)

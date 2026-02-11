@@ -34,13 +34,25 @@ estimate_effect <- function(object, ...) {
 }
 
 #' @rdname estimate_effect
-#' @param target_method Character: which adjustment method to use. If NULL, defaults 
-#'   to the method with the lowest estimated deficiency.
+#' @param method Character: which adjustment method to use. If `NULL`, defaults to
+#'   the method with the lowest estimated deficiency.
+#' @param target_method Deprecated alias for `method`.
 #' @param contrast Vector: c(treated, control) values for contrast. 
 #'   Defaults to c(treatment_value, control_value).
 #' @export
-estimate_effect.deficiency <- function(object, target_method = NULL, 
-                                     contrast = NULL, ...) {
+estimate_effect.deficiency <- function(object, target_method = NULL,
+                                       method = NULL,
+                                       contrast = NULL, ...) {
+
+  # Backward/forward compatible method selection:
+  # - Prefer `method` (public API, consistent with other package functions)
+  # - Support `target_method` for older code
+  if (!is.null(method)) {
+    if (!is.null(target_method)) {
+      cli::cli_abort("Specify only one of {.arg method} or {.arg target_method}.")
+    }
+    target_method <- method
+  }
   
   # Select method
   if (is.null(target_method)) {
@@ -153,15 +165,11 @@ estimate_effect.deficiency <- function(object, target_method = NULL,
     w1 <- 1/ps
     w0 <- 1/(1-ps) # Assuming binary PS
     
-    is_treated <- A == treated_val
-    is_control <- A == control_val
-    
-    dr1 <- mean( (is_treated * w1 * (Y - mu1_ind)) + (1-is_treated)*0 + mu1_ind, na.rm=TRUE ) # Incorrect simplified DR form
-    # Correct DR estimator:
-    # 1/n sum [ (I(A=1)/e) * (Y - m1) + m1 ]
-    
-    dr1 <- mean( (as.numeric(is_treated)/ps) * (Y - mu1_ind) + mu1_ind )
-    dr0 <- mean( (as.numeric(is_control)/(1-ps)) * (Y - mu0_ind) + mu0_ind )
+	    is_treated <- A == treated_val
+	    is_control <- A == control_val
+	
+	    dr1 <- mean( (as.numeric(is_treated)/ps) * (Y - mu1_ind) + mu1_ind )
+	    dr0 <- mean( (as.numeric(is_control)/(1-ps)) * (Y - mu0_ind) + mu0_ind )
     
     ate <- dr1 - dr0
     

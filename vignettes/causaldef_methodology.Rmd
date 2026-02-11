@@ -63,13 +63,14 @@ bounds <- policy_regret_bound(results, utility_range = c(0, 10))
 plot(bounds, type = "safety_curve")
 ```
 
-Figure 1: The Safety Floor Curve. This curve represents the "Price of Safety" formula:
+Figure 1: Regret Bounds vs Deficiency. The transfer penalty and minimax floor scale linearly in $\delta$:
 
-$$ Regret \leq Regret_{oracle} + 2M\delta $$
+$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M\delta $$
 
 *   **Regret**: The cost of making a suboptimal decision based on your data.
-*   **Regret_oracle**: The regret you would have even with perfect data.
-*   **2M$\delta$**: The additional risk you take by not running an RCT.
+*   **Regret_obs**: The regret you can evaluate under the observational regime.
+*   **$M\delta$**: The transfer penalty (additive worst-case regret inflation term).
+    The minimax safety floor is $(M/2)\delta$.
 
 This is not just about bias—this is calculating the safety price for your decision. You are about to learn how to calculate, bound, and minimize this deficiency ($\delta$).
 
@@ -246,11 +247,11 @@ effect <- estimate_effect(results, target_method = "iptw")
 print(effect)
 ```
 
-## Step 6: Policy Regret Bounds (The Safety Floor)
+## Step 6: Policy Regret Bounds (Transfer Penalty and Safety Floor)
 
-This is the most critical step. We calculate the **Safety Floor**.
+This is the most critical step. We convert $\delta$ into decision-theoretic quantities.
 
-$$ \text{Safety Floor} = 2M\delta $$
+$$ \text{Transfer Penalty} = M\delta,\qquad \text{Minimax Safety Floor} = (M/2)\delta $$
 
 Where:
 
@@ -266,11 +267,13 @@ plot(bounds, type = "safety_curve")
 
 ### Decision Framework
 
-*   **Example**: If Stakes ($M$) = $10M and $\delta$ = 0.01, your Safety Floor is $200,000.
+*   **Example**: If Stakes ($M$) = $10M and $\delta$ = 0.01, then:
+    - Transfer penalty = $100,000
+    - Minimax safety floor = $50,000
 *   **Decision**: 
 
-    *   If expected profit ($5M) >> Safety Floor ($200K) $\rightarrow$ **Signal is Clear**.
-    *   If expected profit ($250K) $\approx$ Safety Floor ($200K) $\rightarrow$ **That's Gambling**.
+	    *   If expected profit ($5M) >> transfer penalty ($100K) $\rightarrow$ **Signal is Clear**.
+	    *   If expected profit ($120K) $\approx$ transfer penalty ($100K) $\rightarrow$ **That's Gambling**.
 
 ## Step 7: Sensitivity Analysis & Decision
 
@@ -280,19 +283,19 @@ Finally, if we cannot rule out unobserved confounding, we map the **Confounding 
 # What if there were an unobserved confounder U?
 frontier <- confounding_frontier(spec, grid_size = 30)
 
-# Calculate the Delta corresponding to our Safety Floor limit
-# Suppose our max acceptable safety floor is 0.2 units, and M=10
-# Safety Floor = 2 * M * delta  =>  delta = Safety Floor / (2M)
-acceptable_safety_floor <- 0.2
+# Calculate the delta corresponding to an acceptable transfer-penalty limit
+# Suppose our max acceptable transfer penalty is 0.2 units, and M=10
+# Transfer penalty = M * delta  =>  delta = transfer penalty / M
+acceptable_transfer_penalty <- 0.2
 M <- 10
-delta_threshold <- acceptable_safety_floor / (2 * M)
+delta_threshold <- acceptable_transfer_penalty / M
 
 plot(frontier, type = "heatmap", threshold = c(delta_threshold)) 
 ```
 
 ### Go/No-Go Decision
 
-The contour line represents the border of the **Safety Floor**.  
+The contour line represents the border of an acceptable **transfer penalty**.  
 
 **Ask yourself:**
 > "Does the unsafe territory in the heat map push beyond your safety floor?"

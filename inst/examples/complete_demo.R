@@ -90,7 +90,7 @@ print(nc_result)
 
 cat("\n--- 3. Policy Regret Bounds ---\n\n")
 
-# Calculate safety floor for policy deployment
+# Calculate transfer penalty and minimax safety floor for policy deployment
 cat("Computing policy regret bounds...\n")
 policy_bounds <- policy_regret_bound(
   deficiency = def_result,
@@ -318,13 +318,14 @@ cat("=" |> rep(70) |> paste(collapse = ""), "\n\n")
 cat("Best deficiency achieved: ", round(min(def_result$estimates), 3), "\n")
 cat("Best method: ", names(which.min(def_result$estimates)), "\n")
 cat("NC diagnostic falsified: ", nc_result$falsified, "\n")
-cat("Safety floor (policy): ", round(policy_bounds$safety_floor, 3), "\n")
+cat("Transfer penalty (policy): ", round(policy_bounds$transfer_penalty, 3), "\n")
+cat("Minimax safety floor (policy): ", round(policy_bounds$minimax_floor, 3), "\n")
 cat("Transport deficiency: ", round(transport$delta_transport, 3), "\n")
 
 cat("\n")
 if (min(def_result$estimates) < 0.1 && !nc_result$falsified) {
   cat("✓ RECOMMENDATION: Causal inference appears reliable.\n")
-  cat("  Deploy policy with safety floor = ", round(policy_bounds$safety_floor, 3), "\n")
+  cat("  Deploy policy with transfer penalty = ", round(policy_bounds$transfer_penalty, 3), "\n")
 } else {
   cat("⚠ RECOMMENDATION: Additional caution required.\n")
   cat("  Consider stronger adjustment or randomized trial.\n")

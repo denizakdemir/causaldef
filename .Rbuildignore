@@ -1,6 +1,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^debug_.*\.R$
+^\.DS_Store$
+^\.git$
+^\.gitignore$
 ^LICENSE\.md$
 ^README\.Rmd$
 ^codemeta\.json$
@@ -8,5 +11,9 @@
 ^doc$
 ^Meta$
 ^README\.html$
+^_pkgdown\.yml$
 ^cran-comments\.md$
+^causaldef\.Rcheck$
+^\\.\\.Rcheck$
+^causaldef_.*\.tar\.gz$
 ^data-raw$

@@ -40,8 +40,12 @@ for linear Gaussian models.
 For the linear Gaussian structural causal model:
 \deqn{U \sim N(0,1), \quad A = \alpha U + \varepsilon_A, \quad Y = \beta A + \gamma U + \varepsilon_Y}
 
-The deficiency satisfies:
+The manuscript's Confounding Lower Bound theorem (\code{thm:confounding_lb}) states the scaling of the causal deficiency:
 \deqn{\delta \geq C \frac{|\alpha\gamma|}{\sqrt{(1 + \alpha^2/\sigma_A^2)(1 + \gamma^2/\sigma_Y^2)}}}
+for some universal constant \eqn{C>0} (typically after rescaling so \eqn{|a|\le 1}).
+This function computes a concrete, rigorous lower bound using the underlying
+Le Cam two-point construction (i.e., \eqn{\delta \ge (1/2)\,\mathrm{TV}} between two
+observationally indistinguishable parameterizations).
 
 This creates a "confounding frontier" - the boundary where identification
 transitions from possible (\eqn{\delta=0}) to impossible (\eqn{\delta>0}).
@@ -73,7 +77,7 @@ frontier <- confounding_frontier(spec, grid_size = 50)
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-DOI: 10.5281/zenodo.18367347. See Theorem 4.1 for derivation.
+DOI: 10.5281/zenodo.18367347. See \code{thm:confounding_lb} (Confounding Lower Bound).
 }
 \seealso{
 \code{\link[=estimate_deficiency]{estimate_deficiency()}}, \code{\link[=policy_regret_bound]{policy_regret_bound()}}

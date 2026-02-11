@@ -18,7 +18,7 @@
 
 ### New Identification Methods
 
-* **Front-Door Kernel** (`frontdoor_effect()`): Implements Theorem 2.2 with 
+* **Front-Door Kernel** (`frontdoor_effect()`): Implements the front-door kernel existence result (`thm:frontdoor`) with 
   plugin and doubly-robust estimators for front-door identification.
   
 * **Transport Deficiency** (`transport_deficiency()`): Measures distribution 
@@ -58,7 +58,7 @@
 ### New Vignettes
 
 * `negative_controls.Rmd`: Comprehensive guide to using negative control 
-  diagnostics with Theorem 5.2 implementation.
+  diagnostics with the negative control bound (`thm:nc_bound`).
   
 * `policy_learning.Rmd`: Guide to safe policy learning with decision-theoretic 
   bounds and the safety floor concept.

@@ -4,7 +4,9 @@
 
 # Declare global variables used in ggplot2 aesthetics (avoids R CMD check NOTEs)
 utils::globalVariables(c("alpha", "delta", "estimate", "lower", "upper", 
-                         "method", "outcome", "Value", "Component", "safety", 
+                         "method", "outcome", "Value", "Component", "safety",
+                         "transfer", "minimax",
+                         "delta_bound",
                          ".weights", "gamma"))
 
 # Cross-compatible message functions

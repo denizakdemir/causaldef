@@ -9,7 +9,12 @@
 #' @param data A data.frame containing survival data
 #' @param treatment Character: name of the treatment variable
 #' @param time Character: name of the time-to-event variable
-#' @param event Character: name of the event indicator (1 = event, 0 = censored)
+#' @param event Character: name of the event indicator (1 = event, 0 = censored).
+#'   If the column is a factor/character (e.g., \code{"Death"}, \code{"Relapse"},
+#'   \code{"Censored"}), it will be coerced to a 0/1 indicator by treating
+#'   \code{"Censored"} (case-insensitive) and \code{"0"} as censored and all other
+#'   non-missing values as events. For competing risks, prefer
+#'   [causal_spec_competing()].
 #' @param covariates Character vector: names of adjustment covariates
 #' @param competing_event Character: name of competing event indicator (optional)
 #' @param estimand Character: target estimand ("ATE", "RMST", "HR")
@@ -88,6 +93,67 @@ causal_spec_survival <- function(data, treatment, time, event,
   
   # Infer treatment type
   treatment_type <- .infer_treatment_type(complete_data[[treatment]])
+  
+  # Coerce event indicator to a 0/1 numeric vector if needed.
+  event_vec <- complete_data[[event]]
+  if (is.factor(event_vec) || is.character(event_vec)) {
+    event_chr <- tolower(as.character(event_vec))
+    censored <- is.na(event_chr) | event_chr %in% c("censored", "censor", "0", "")
+    non_censor_levels <- sort(unique(event_chr[!censored]))
+    
+    if (length(non_censor_levels) > 1) {
+      .msg_warning(paste0(
+        "Event column '", event, "' has multiple non-censor levels (",
+        paste(shQuote(non_censor_levels), collapse = ", "), "). ",
+        "Coercing to a binary indicator where any non-censored level is treated as an event. ",
+        "For competing risks, use causal_spec_competing() or create an explicit 0/1 event indicator."
+      ))
+    }
+    
+    complete_data[[event]] <- as.integer(!censored)
+  } else if (is.logical(event_vec)) {
+    complete_data[[event]] <- as.integer(event_vec)
+  } else if (is.numeric(event_vec) || is.integer(event_vec)) {
+    # Accept 0/1, and coerce positive integers to 1 with a warning.
+    non_missing <- event_vec[!is.na(event_vec)]
+    if (length(non_missing) > 0 && !all(non_missing %in% c(0, 1))) {
+      if (all(non_missing >= 0 & non_missing == floor(non_missing))) {
+        .msg_warning(paste0(
+          "Event column '", event, "' is not binary. ",
+          "Coercing to 0/1 by treating values > 0 as events."
+        ))
+        complete_data[[event]] <- as.integer(event_vec > 0)
+      } else {
+        .msg_error(paste0(
+          "Event column '", event, "' must be a 0/1 indicator (or a non-negative integer code)."
+        ))
+      }
+    }
+  } else {
+    .msg_error(paste0(
+      "Unsupported type for event column '", event, "'. ",
+      "Provide a 0/1 indicator (numeric/logical) or a factor/character with a 'Censored' level."
+    ))
+  }
+  
+  # Competing event (if provided) should be 0/1. Coerce similarly.
+  if (!is.null(competing_event)) {
+    ce_vec <- complete_data[[competing_event]]
+    if (is.factor(ce_vec) || is.character(ce_vec)) {
+      ce_chr <- tolower(as.character(ce_vec))
+      ce_censored <- is.na(ce_chr) | ce_chr %in% c("censored", "censor", "0", "")
+      complete_data[[competing_event]] <- as.integer(!ce_censored)
+    } else if (is.logical(ce_vec)) {
+      complete_data[[competing_event]] <- as.integer(ce_vec)
+    } else if (is.numeric(ce_vec) || is.integer(ce_vec)) {
+      complete_data[[competing_event]] <- as.integer(ce_vec > 0)
+    } else {
+      .msg_error(paste0(
+        "Unsupported type for competing_event column '", competing_event, "'. ",
+        "Provide a 0/1 indicator."
+      ))
+    }
+  }
   
   # Construct object
   spec <- new_causal_spec_survival(

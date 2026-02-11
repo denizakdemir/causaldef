@@ -2,10 +2,10 @@
 # estimate_deficiency() - Main Deficiency Estimation
 # =============================================================================
 
-#' Estimate Le Cam Deficiency
+#' Estimate a Deficiency Proxy (PS-TV)
 #'
-#' Computes the deficiency \eqn{\delta(E_{obs}, E_{do})} between observational and
-#' interventional experiments under various adjustment strategies.
+#' Computes a \emph{computable proxy} for the (population) Le Cam deficiency between
+#' observational and interventional regimes under various adjustment strategies.
 #'
 #' @param spec A causal_spec object
 #' @param methods Character vector: adjustment methods to compare
@@ -26,20 +26,31 @@
 #'
 #' @return Object of class "deficiency" containing:
 #'   \itemize{
-#'     \item estimates: Named vector of \eqn{\delta} estimates per method
+#'     \item estimates: Named vector of deficiency proxy estimates per method
 #'     \item se: Standard errors (if n_boot > 0)
 #'     \item ci: Confidence intervals
 #'     \item method: Methods used
 #'     \item kernel: Fitted kernels for each method
+#'     \item metric: Identifier for the proxy metric used
 #'   }
 #'
 #' @details
-#' The Le Cam deficiency quantifies the information gap:
+#' The (population) Le Cam deficiency is defined as:
 #' \deqn{\delta(\mathcal{E}_{obs}, \mathcal{E}_{do}) =
 #'       \inf_K \sup_\theta ||KP^{obs}_\theta - P^{do}_\theta||_{TV}}
 #'
-#' When \eqn{\delta = 0}, perfect causal identification is possible.
-#' When \eqn{\delta > 0}, some information loss is unavoidable.
+#' This quantity is not directly estimable nonparametrically from finite samples
+#' without additional structure. The current implementation returns a proxy based on
+#' the total variation distance between \emph{propensity-score distributions} under:
+#' \enumerate{
+#'   \item the method-induced reweighting (pseudo-population), and
+#'   \item the unweighted target population.
+#' }
+#' This PS-TV proxy is an overlap/balance diagnostic: values near 0 indicate near-perfect
+#' balance under the estimated propensity model, while large values flag positivity/overlap issues.
+#'
+#' Importantly, this is a \emph{proxy} and should not be interpreted as the exact Le Cam deficiency
+#' unless supplemented by a result linking the proxy to the specific decision class of interest.
 #'
 #' @examples
 #' # Create sample data
@@ -105,7 +116,7 @@ estimate_deficiency <- function(spec, methods = c("iptw", "aipw"),
   if (spec$treatment_type != "binary") {
     cli::cli_abort(c(
       "Unsupported treatment type: {.val {spec$treatment_type}}",
-      "x" = "The current version of {.pkg causaldef} only supports binary treatments for deficiency estimation.",
+      "x" = "The current version of {.pkg causaldef} only supports binary treatments for deficiency proxy estimation.",
       "i" = "The underlying estimators (IPTW/AIPW) currently assume a logistic propensity model.",
       "i" = "Please dichotomize your treatment variable (e.g., High vs. Low) or subset your data to two groups."
     ))
@@ -157,7 +168,8 @@ estimate_deficiency <- function(spec, methods = c("iptw", "aipw"),
     ci = ci,
     method = methods,
     kernel = kernels,
-    spec = spec
+    spec = spec,
+    metric = "ps_tv"
   )
 }
 
@@ -185,7 +197,7 @@ estimate_deficiency <- function(spec, methods = c("iptw", "aipw"),
   
   # Build kernel and compute point estimate
   kernel <- .build_kernel(spec, method, treatment_value)
-  estimate <- .compute_deficiency(spec, kernel, method)
+  estimate <- .compute_deficiency_proxy(spec, kernel, method)
   
   # Bootstrap if requested
   if (n_boot > 0) {
@@ -197,12 +209,12 @@ estimate_deficiency <- function(spec, methods = c("iptw", "aipw"),
       boot_spec$data <- boot_data
       boot_spec$n <- nrow(boot_data)
       boot_kernel <- .build_kernel(boot_spec, method, treatment_value)
-      .compute_deficiency(boot_spec, boot_kernel, method)
+      .compute_deficiency_proxy(boot_spec, boot_kernel, method)
     }
     
     # Use parallel processing if requested and future.apply is available
     if (parallel && requireNamespace("future.apply", quietly = TRUE)) {
-      boot_estimates <- future.apply::future_sapply(seq_len(n_boot), boot_fn)
+      boot_estimates <- future.apply::future_sapply(seq_len(n_boot), boot_fn, future.seed = TRUE)
     } else {
       if (parallel) {
         cli::cli_alert_warning("Package {.pkg future.apply} not available. Using sequential bootstrap.")
@@ -528,20 +540,20 @@ estimate_deficiency <- function(spec, methods = c("iptw", "aipw"),
 }
 
 # =============================================================================
-# Internal: Deficiency Computation
+# Internal: Deficiency Proxy Computation
 # =============================================================================
 
 #' @keywords internal
-.compute_deficiency <- function(spec, kernel, method) {
+.compute_deficiency_proxy <- function(spec, kernel, method) {
   
   data <- spec$data
   A <- data[[spec$treatment]]
   n <- nrow(data)
   
-  # For deficiency estimation, we need a common ground to compare distributions.
-  # The Propensity Score (PS) is the standard summary score for confounding.
-  # We estimate the TV distance between the effective distributions implied by the method
-  # and the target interventional distribution (approximated by the full sample marginal).
+  # This function computes a *proxy* based on propensity-score (PS) balance.
+  # The PS is a 1D summary of confounding/overlap; we estimate the TV distance between:
+  # (i) the method-induced pseudo-population (via weights), and
+  # (ii) the unweighted target population.
   
   # 1. Get Propensity Scores (PS)
   # If not computed in kernel (e.g. unadjusted), we must estimate them for the metric
@@ -667,4 +679,3 @@ estimate_deficiency <- function(spec, methods = c("iptw", "aipw"),
 
 # Note: The original SMD computation functions (.compute_smd, .compute_weighted_smd)
 # have been removed as they provided heuristic proxies rather than theoretical bounds.
-

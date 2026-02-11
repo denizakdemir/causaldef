@@ -23,7 +23,12 @@ causal_spec_survival(
 
 \item{time}{Character: name of the time-to-event variable}
 
-\item{event}{Character: name of the event indicator (1 = event, 0 = censored)}
+\item{event}{Character: name of the event indicator (1 = event, 0 = censored).
+If the column is a factor/character (e.g., \code{"Death"}, \code{"Relapse"},
+\code{"Censored"}), it will be coerced to a 0/1 indicator by treating
+\code{"Censored"} (case-insensitive) and \code{"0"} as censored and all other
+non-missing values as events. For competing risks, prefer
+\code{\link[=causal_spec_competing]{causal_spec_competing()}}.}
 
 \item{covariates}{Character vector: names of adjustment covariates}
 

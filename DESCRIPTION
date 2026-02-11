@@ -25,7 +25,6 @@ RoxygenNote: 7.3.3
 Depends: 
     R (>= 3.6.0)
 Imports:
-    data.table,
     checkmate,
     cli,
     ggplot2,

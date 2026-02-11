@@ -8,7 +8,8 @@ policy_regret_bound(
   deficiency,
   utility_range = c(0, 1),
   obs_regret = NULL,
-  policy_class = NULL
+  policy_class = NULL,
+  delta_mode = c("point", "upper")
 )
 }
 \arguments{
@@ -19,12 +20,20 @@ policy_regret_bound(
 \item{obs_regret}{Numeric: observed regret from policy on observational data (optional)}
 
 \item{policy_class}{Character: description of policy class (for reporting)}
+
+\item{delta_mode}{Character: how to extract \eqn{\delta} from a deficiency object.
+\itemize{
+\item "point": use the minimum point estimate (default)
+\item "upper": use the minimum upper CI bound (more conservative; requires bootstrap)
+}}
 }
 \value{
 Object of class "policy_bound" containing:
 \itemize{
 \item regret_bound: Upper bound on interventional regret (if obs_regret provided)
-\item safety_floor: Minimum unavoidable regret = 2\emph{M}\eqn{\delta}
+\item safety_floor: Backward-compatible alias for transfer_penalty
+\item transfer_penalty: Additive regret penalty = M*\eqn{\delta}
+\item minimax_floor: Minimax lower bound = (M/2)*\eqn{\delta}
 \item delta: Deficiency value used
 \item utility_range: Range of utility function
 \item M: Utility range (max - min)
@@ -32,14 +41,17 @@ Object of class "policy_bound" containing:
 }
 \description{
 Given deficiency \eqn{\delta}, computes worst-case bounds on policy regret.
-The bound states: \eqn{Regret_{do} \le Regret_{obs} + 2M \cdot \delta}
+The bound states: \eqn{Regret_{do} \le Regret_{obs} + M \cdot \delta}
 }
 \details{
 For any policy \eqn{\pi} learned from observational data, the regret bound is:
-\deqn{Regret_{do}(\pi) \leq Regret_{obs}(\pi) + 2M \cdot \delta}
+\deqn{Regret_{do}(\pi) \leq Regret_{obs}(\pi) + M \cdot \delta}
 
-The "safety floor" \eqn{2M\delta} represents the irreducible regret penalty from
+The "transfer penalty" \eqn{M\delta} quantifies worst-case regret inflation from
 the information gap between observational and interventional experiments.
+
+Separately, a minimax lower bound ("minimax floor") of \eqn{(M/2)\delta} holds for
+bounded utilities (see manuscript theorem \code{thm:safety_floor}).
 }
 \section{Implications for Safe AI}{
 
@@ -67,7 +79,8 @@ print(bound)
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-DOI: 10.5281/zenodo.18367347. See Theorem 3.2 for proof.
+DOI: 10.5281/zenodo.18367347. See \code{thm:policy_regret} (Policy Regret Transfer)
+and \code{thm:safety_floor} (Minimax Safety Floor).
 }
 \seealso{
 \code{\link[=estimate_deficiency]{estimate_deficiency()}}, \code{\link[=confounding_frontier]{confounding_frontier()}}

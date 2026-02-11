@@ -158,7 +158,7 @@ In HCT, patients receiving myeloablative conditioning are typically younger and 
 To validate our findings and translate them into clinical metrics, we use standard survival models. We calculate the Restricted Mean Survival Time (RMST), which provides an interpretable effect size (difference in life expectancy up to a specific time horizon).
 
 **Why RMST and not Hazard Ratios?**
-In a decision-theoretic framework, we need an estimand that maps directly to a utility function (e.g., "years of life gained"). Hazard Ratios are relative measures that are difficult to translate into absolute utility boundaries ($M$) needed for the safety floor calculation ($2M\delta$). RMST, being on the time scale (e.g., "months gained"), allows us to strictly define $M$ as the time horizon, making the safety guarantees valid and interpretable.
+In a decision-theoretic framework, we need an estimand that maps directly to a utility function (e.g., "months of life gained"). Hazard ratios are relative measures that are difficult to translate into absolute utility bounds ($M$) needed to interpret regret bounds (transfer penalty $M\delta$ and minimax floor $(M/2)\delta$). RMST, being on the time scale (e.g., "months gained"), allows us to define $M$ concretely (e.g., the horizon), making these guarantees interpretable.
 
 ```{r surv_model, message=FALSE, warning=FALSE, eval = eval_surv}
 # 1. Visualize Survival Curves
@@ -242,39 +242,41 @@ The RMST difference provides the *observed* treatment effect. However, this is b
 
 The deficiency $\delta$ we calculated earlier tells us how much we can trust this estimate.
 
-*   If $\delta \approx 0$ (after IPTW), we can interpret the weighted RMST difference as causal.
-*   The "Safety Floor" for our decision is related to $2 \cdot M \cdot \delta$, where $M$ is the maximum possible survival time (or horizon).
+*   If $\delta \approx 0$ (after IPTW), we can interpret the weighted RMST difference as causal (up to sampling error).
+*   If $\delta > 0$, `policy_regret_bound()` converts this information gap into decision-relevant regret bounds on the same scale as the utility (here: months of RMST up to the horizon).
 
 ```{r safety_floor, eval = eval_surv}
-# Calculate Policy Regret Bound (Safety Floor)
+# Calculate policy regret bounds (transfer penalty + minimax floor)
 # Utility range is [0, horizon] (months of survival)
 bound <- policy_regret_bound(results_hct, utility_range = c(0, horizon))
 print(bound)
 ```
 
-**Clinical Interpretation of the Safety Floor:**
+**Clinical Interpretation (Transfer Penalty and Minimax Safety Floor):**
 
-The safety floor answers: *"What's the worst-case mistake I could make in treatment selection due to using observational data instead of an RCT?"*
+The bounds answer: *"How much regret could confounding add to my decision, and what regret is unavoidable without stronger assumptions?"*
 
-**Formula:** Safety Floor = 2 $\times$ M $\times$ $\delta$  
-Where:
+**Formulas:**
 
-- **M** = Maximum possible survival benefit (here, 24 months)
-- **$\delta$** = Deficiency (information gap)
+- **Transfer penalty** = $M \times \delta$ (additive worst-case inflation term in the regret upper bound)
+- **Minimax safety floor** = $(M/2) \times \delta$ (irreducible worst-case regret lower bound)
+
+where **$M$** is the utility range (here, the RMST horizon in months) and **$\delta$** is the deficiency proxy.
 
 **What It Means:**
 
-Even if you make the optimal decision based on your observational data, you could still be wrong by up to the safety floor amount, purely due to the observational (non-randomized) nature of the evidence.
+- The **transfer penalty** is the conservative quantity for deployment: it upper-bounds how much worse your deployed policy could be (in regret) due to the observational--interventional information gap.
+- The **minimax safety floor** is a fundamental limit: if this floor is already clinically unacceptable, no algorithm can guarantee safe decisions from the observational data alone.
 
-**Clinical Decision Framework:**
+**Clinical Decision Framework (use Transfer Penalty):**
 
-1. **If Safety Floor < 1 month**:  
-   [PASS] **Proceed with confidence** – The observational evidence is RCT-quality. Treatment recommendations are well-supported.
+1. **If Transfer Penalty < 1 month**:  
+   [PASS] **Proceed with confidence** – Observational evidence is decision-relevant at this horizon.
 
-2. **If 1 $\leq$ Safety Floor < 3 months**:  
-   [CAUTION] **Proceed with acknowledgment** – Acceptable for many clinical contexts. Document the limitation: "Based on observational evidence with safety floor of X months..."
+2. **If 1 $\leq$ Transfer Penalty < 3 months**:  
+   [CAUTION] **Proceed with acknowledgment** – Often acceptable, but document the bound: "Based on observational evidence with transfer penalty of X months..."
 
-3. **If Safety Floor $\geq$ 3 months**:  
+3. **If Transfer Penalty $\geq$ 3 months**:  
    [STOP] **High uncertainty** – Consider:
    - Improving adjustment (add covariates, better models)
    - Conducting a prospective RCT
@@ -282,25 +284,25 @@ Even if you make the optimal decision based on your observational data, you coul
    - Limiting recommendations to subgroups with better data
 
 **Example:**  
-If $\delta$ = 0.02 (excellent IPTW performance):  
-Safety Floor = 2 $\times$ 24 $\times$ 0.02 = **0.96 months**
+If $\delta$ = 0.02 (excellent IPTW performance) and $M$ = 24 months:  
+Transfer Penalty = $24 \times 0.02$ = **0.48 months**  
+Minimax Safety Floor = $(24/2) \times 0.02$ = **0.24 months**
 
-**Interpretation:** Even with perfect decision-making, the observational nature introduces ~1 month of unavoidable uncertainty. If the observed RMST difference is 4 months, the 4:1 benefit-to-risk ratio suggests the decision is robust.
+**Interpretation:** If the observed RMST difference is 4 months, then even the conservative transfer-penalty ratio is roughly $4/0.48 \approx 8:1$, suggesting the decision is robust at this horizon (subject to the modeling assumptions).
 
 **Reporting to Clinicians:**  
-*"Our observational analysis suggests a 4-month survival advantage for myeloablative conditioning (95% CI: [2.1, 5.9]). The safety floor analysis indicates that the maximum decision error from using observational data is approximately 1 month, well below the observed benefit. This provides strong support for the treatment recommendation, though an RCT would eliminate this residual uncertainty."*
+*"Our observational analysis suggests a 4-month survival advantage for myeloablative conditioning (95% CI: [2.1, 5.9]). After adjustment, the deficiency proxy is $\delta \approx 0.02$ at a 24-month horizon, implying a transfer penalty of about 0.5 months and a minimax safety floor of about 0.25 months. These bounds are well below the observed benefit, supporting the recommendation, though an RCT would eliminate this residual uncertainty."*
 
 ### Connection to Deficiency
 
 The key insight:
 
-- **Low $\delta$** (successful adjustment) -> **Low safety floor** (trustworthy decisions)
-- **High $\delta$** (poor adjustment) -> **High safety floor** (risky decisions)
+- **Low $\delta$** (successful adjustment) -> **Low transfer penalty / minimax floor** (trustworthy decisions)
+- **High $\delta$** (poor adjustment) -> **High transfer penalty / minimax floor** (risky decisions)
 
-The deficiency $\delta$ and safety floor work together:
+The deficiency $\delta$ and regret bounds work together:
 
 1. **$\delta$** tells you how well you approximated an RCT (information quality)
-2. **Safety floor** tells you the decision risk (clinical consequence)
+2. **Transfer penalty / minimax floor** translate that gap into decision risk on your utility scale
 
 Both should be reported to provide complete transparency about observational evidence quality.
-

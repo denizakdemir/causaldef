@@ -158,23 +158,27 @@ function(delta, utility_min = 0, utility_max = 1, obs_regret = NULL) {
   
   tryCatch({
     M <- utility_max - utility_min
-    safety_floor <- 2 * M * as.numeric(delta)
+    transfer_penalty <- M * as.numeric(delta)
+    minimax_floor <- 0.5 * M * as.numeric(delta)
+    safety_floor <- transfer_penalty
     
     result <- list(
       success = TRUE,
       delta = as.numeric(delta),
       M = M,
-      safety_floor = safety_floor
+      safety_floor = safety_floor,
+      transfer_penalty = transfer_penalty,
+      minimax_floor = minimax_floor
     )
     
     if (!is.null(obs_regret)) {
       result$obs_regret <- as.numeric(obs_regret)
-      result$regret_bound <- safety_floor + as.numeric(obs_regret)
+      result$regret_bound <- transfer_penalty + as.numeric(obs_regret)
     }
     
     result$interpretation <- sprintf(
-      "With delta=%%.3f and utility range [%%.1f, %%.1f], the minimum irreducible regret is %%.3f",
-      as.numeric(delta), utility_min, utility_max, safety_floor
+      "With delta=%%.3f and utility range [%%.1f, %%.1f], the transfer penalty is %%.3f and the minimax floor is %%.3f",
+      as.numeric(delta), utility_min, utility_max, transfer_penalty, minimax_floor
     )
     
     result
@@ -321,7 +325,7 @@ pr$run(
 FROM rstudio/plumber:latest
 
 # Install causaldef dependencies
-RUN R -e "install.packages(c(\'data.table\', \'checkmate\', \'cli\', \'ggplot2\', \'jsonlite\'))"
+RUN R -e "install.packages(c(\'checkmate\', \'cli\', \'ggplot2\', \'jsonlite\'))"
 
 # Install causaldef (from GitHub or local)
 # RUN R -e "remotes::install_github(\'denizakdemir/causaldef\')"

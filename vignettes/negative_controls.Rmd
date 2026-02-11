@@ -46,9 +46,9 @@ The key insight is:
 If you observe a non-zero association between $A$ and $Y'$ after adjustment, 
 this indicates that **confounding remains** and your causal estimates may be biased.
 
-### Theorem 5.2: The Negative Control Bound
+### Negative Control Sensitivity Bound (manuscript `thm:nc_bound`)
 
-The `causaldef` package implements the bound from Theorem 5.2:
+The `causaldef` package implements the bound from the manuscript's negative control sensitivity bound (`thm:nc_bound`):
 
 $$\delta(\hat{K}) \leq \kappa \cdot \delta_{NC}(\hat{K})$$
 
@@ -257,7 +257,7 @@ assumptions. Use them alongside deficiency estimation for robust causal inferenc
 ## References
 
 1. Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison. 
-   DOI: 10.5281/zenodo.18367347. See Theorem 5.2.
+   DOI: 10.5281/zenodo.18367347. See `thm:nc_bound` (Negative Control Sensitivity Bound).
 
 2. Lipsitch, M., Tchetgen, E., & Cohen, T. (2010). Negative controls: A tool 
    for detecting confounding and bias. *Epidemiology*, 21(3), 383-388.

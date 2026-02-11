@@ -1,80 +1,75 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# causaldef <img src="man/figures/logo.png" align="right" height="139" />
+# causaldef
 
 <!-- badges: start -->
-[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen.svg)](https://github.com/denizakdemir/causaldef)
-[![CRAN status](https://www.r-pkg.org/badges/version/causaldef)](https://CRAN.R-project.org/package=causaldef)
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/causaldef)](https://CRAN.R-project.org/package=causaldef)
 <!-- badges: end -->
 
-**causaldef** implements Le Cam deficiency theory for causal inference, providing quantitative bounds on information loss from confounding, selection bias, and distributional shift.
+**causaldef** implements Le Cam deficiency theory for causal inference,
+providing quantitative bounds on information loss from confounding,
+selection bias, and distributional shift.
 
-Unlike traditional sensitivity analysis which focuses on *"how much bias"* exists, `causaldef` answers the decision-theoretic question: **"how much regret"** might we incur by acting on this evidence?
+Unlike traditional sensitivity analysis which focuses on “how much bias”
+exists, `causaldef` answers the decision-theoretic question: **“how much
+regret”** might we incur by acting on this evidence?
 
-## 🎯 Key Concept: Deficiency (δ)
+## Key Concept: Deficiency (δ)
 
-The **deficiency** δ measures the information gap between your observational data and a perfect randomized trial:
+The **deficiency** δ is a theoretical measure of the information gap
+between your observational data and a perfect randomized trial. In
+practice, `causaldef` provides a **computable proxy** $\widehat{\delta}$
+based on propensity-score TV balance (PS-TV), which is informative about
+overlap/positivity and residual confounding risk.
 
-| δ Value | Interpretation | Action |
-|---------|----------------|--------|
-| δ ≈ 0 | RCT-quality evidence | Proceed with confidence |
-| δ < 0.05 | Excellent | Strong causal conclusions |
-| 0.05 ≤ δ < 0.15 | Moderate | Document limitations |
-| δ ≥ 0.15 | High | Caution; seek more evidence |
+For bounded utilities with range $M$ (max minus min), the manuscript
+provides:
 
-The **safety floor** = 2 × M × δ bounds worst-case policy regret, where M is the utility range.
+- a **regret transfer penalty** (upper bound term) of $M\cdot \delta$,
+  and
+- a minimax **safety floor** (lower bound) of $(M/2)\cdot \delta$.
+
+`policy_regret_bound()` reports both quantities.
 
 ## Installation
 
-Install the development version from [GitHub](https://github.com/denizakdemir/causaldef):
-```r
+You can install the development version of causaldef from
+[GitHub](https://github.com/) with:
+
+``` r
 # install.packages("devtools")
 devtools::install_github("denizakdemir/causaldef")
 ```
 
 ## Core Features
 
-| Feature | Function | Description |
-|---------|----------|-------------|
-| **Deficiency Estimation** | `estimate_deficiency()` | Compare adjustment strategies (IPTW, AIPW, TMLE, etc.) |
-| **Policy Regret Bounds** | `policy_regret_bound()` | Compute the "safety floor" for decision-making |
-| **Negative Control Diagnostics** | `nc_diagnostic()` | Falsification tests using auxiliary outcomes |
-| **Confounding Frontiers** | `confounding_frontier()` | Visualize sensitivity to unmeasured confounding |
-| **Survival Analysis** | `causal_spec_survival()` | Time-to-event outcomes (RMST, Cox IPTW) |
-| **Front-Door Identification** | `frontdoor_effect()` | When mediators are available |
-| **Instrumental Variables** | `iv_effect()` | 2SLS, Wald, and LIML estimators |
-
-## Quick Start: The 4-Step Workflow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  1. SPECIFY: causal_spec() / causal_spec_survival()             │
-│              ↓ Define treatment, outcome, covariates            │
-├─────────────────────────────────────────────────────────────────┤
-│  2. ESTIMATE: estimate_deficiency()                             │
-│               ↓ Compare adjustment methods, select best δ       │
-├─────────────────────────────────────────────────────────────────┤
-│  3. DIAGNOSE: nc_diagnostic() + confounding_frontier()          │
-│               ↓ Test assumptions, map sensitivity               │
-├─────────────────────────────────────────────────────────────────┤
-│  4. DECIDE: policy_regret_bound() + estimate_effect()           │
-│             ↓ Compute safety floor, report causal effect        │
-└─────────────────────────────────────────────────────────────────┘
-```
+- **Deficiency proxies:** `estimate_deficiency()` (PS-TV overlap/balance
+  proxy)
+- **Policy regret bounds:** `policy_regret_bound()` (transfer penalty +
+  minimax floor)
+- **Negative control diagnostics:** `nc_diagnostic()` (falsification and
+  bounds)
+- **Sensitivity analysis:** `confounding_frontier()` (linear-Gaussian
+  confounding frontier)
+- **Survival + competing risks:** `causal_spec_survival()`,
+  `causal_spec_competing()`
 
 ## Example 1: Basic Deficiency Estimation
 
-```r
+``` r
 library(causaldef)
 set.seed(42)
 
 # Simulate confounded data (W satisfies back-door criterion)
 n <- 500
 W <- rnorm(n)
-A <- rbinom(n, 1, plogis(0.5 * W))  # Treatment confounded by W
-Y <- 1 + 2 * A + W + rnorm(n)       # True effect = 2
+A <- rbinom(n, 1, plogis(0.5 * W))
+Y <- 1 + 2 * A + W + rnorm(n)
 df <- data.frame(W = W, A = A, Y = Y)
 
 # 1. Define the causal problem
@@ -86,66 +81,70 @@ spec <- causal_spec(
 )
 #> ✔ Created causal specification: n=500, 1 covariate(s)
 
-# 2. Estimate Le Cam deficiency for different strategies
+# 2. Estimate a deficiency proxy (PS-TV) for different strategies
 results <- estimate_deficiency(
   spec, 
   methods = c("unadjusted", "iptw", "aipw"),
   n_boot = 100
 )
+#> ℹ Estimating deficiency: unadjusted
+#> ℹ Estimating deficiency: iptw
+#> ℹ Estimating deficiency: aipw
 
 print(results)
-#> ── Le Cam Deficiency Estimates ──────────────────────────────────
 #> 
-#>      Method  Delta     SE               CI
-#>  unadjusted 0.2531 0.0460 [0.1779, 0.3452]
-#>        iptw 0.0011 0.0061  [1e-04, 0.0211]
-#>        aipw 0.0009 0.0029  [2e-04, 0.0108]
+#> -- Deficiency Proxy Estimates (PS-TV) ------
 #> 
-#> Best method: aipw (δ = 0.0009)
+#>      Method  Delta     SE               CI            Quality
+#>  unadjusted 0.1190 0.0230 [0.1048, 0.1982] Insufficient (Red)
+#>        iptw 0.0212 0.0099 [0.0142, 0.0537]  Excellent (Green)
+#>        aipw 0.0212 0.0087 [0.0154, 0.0483]  Excellent (Green)
+#> Note: delta is a propensity-score TV proxy (overlap/balance diagnostic).
+#> 
+#> Best method: aipw (delta = 0.0212 )
 ```
 
-**Interpretation:** The unadjusted analysis has δ ≈ 0.25 (substantial confounding). After IPTW or AIPW adjustment, δ drops to ~0.001, indicating near-RCT quality evidence.
+**Interpretation:** Unadjusted $\widehat{\delta} \approx$ 0.119; after
+IPTW/AIPW, $\widehat{\delta} \approx$ 0.021.
 
 ## Example 2: Policy Regret Bounds
 
-If we use this evidence to make a policy decision (e.g., approve a drug), what is the worst-case loss?
+If we use this evidence to make a policy decision (e.g., approve a
+drug), what is the worst-case loss?
 
-```r
+``` r
 # Calculate bounds for a utility range of [0, 1]
 bounds <- policy_regret_bound(results, utility_range = c(0, 1))
-#> ℹ Safety floor: 0.0018 (minimum regret given δ = 0.0009)
+#> ℹ Transfer penalty: 0.0212 (delta = 0.0212)
 
 print(bounds)
-#> ── Policy Regret Bound (Theorem 3.2) ────────────────────────────
 #> 
-#> • Deficiency δ: 0.0009 
-#> • Utility range: [0, 1]
-#> • Safety floor: 0.0018 (minimum regret given δ)
+#> -- Policy Regret Bounds -------------------------------------------------
 #> 
-#> Interpretation: Worst-case regret is 0.2% of utility range
-
+#> * Deficiency delta: 0.0212 
+#> * Delta mode: point 
+#> * Delta method: aipw 
+#> * Utility range: [0, 1]
+#> * Transfer penalty: 0.0212 (additive regret upper bound)
+#> * Minimax floor: 0.0106 (worst-case lower bound)
+#> 
+#> Interpretation: Transfer penalty is 2.1 % of utility range given delta
 plot(bounds, type = "safety_curve")
 ```
 
 <img src="man/figures/README-regret-1.png" width="100%" />
 
-**The Safety Floor Formula:**
-
-```
-Safety Floor = 2 × M × δ
-             = 2 × 1 × 0.0009
-             = 0.0018
-```
-
-This means even with perfect decision-making, the observational evidence introduces at most 0.18% worst-case error.
+The plug-in transfer penalty is 0.0212 on a 0–1 utility scale; the
+minimax safety floor is 0.0106.
 
 ## Example 3: Negative Control Diagnostic
 
-Test whether adjustment actually removes confounding using a negative control outcome (known to be unaffected by treatment):
+Check if the “Adjusted” strategy actually removes confounding using a
+negative control outcome $Y_{nc}$ (known to be unaffected by treatment).
 
-```r
-# Add a negative control: affected by confounder W, NOT by treatment A
-df$Y_nc <- W + rnorm(n)
+``` r
+# Add a negative control to simulation
+df$Y_nc <- W + rnorm(n) # Correlated with W (confounder) but not A
 
 spec_nc <- causal_spec(
   data = df, 
@@ -154,101 +153,99 @@ spec_nc <- causal_spec(
   covariates = "W",
   negative_control = "Y_nc"
 )
+#> ✔ Created causal specification: n=500, 1 covariate(s)
 
-# Run diagnostic (Theorem 5.2)
+# Run diagnostic
 nc_test <- nc_diagnostic(spec_nc, method = "iptw")
-#> ✔ No evidence against causal assumptions (p = 0.85)
-
+#> ℹ Using kappa = 1 (conservative). Consider domain-specific estimation or sensitivity analysis via kappa_range.
+#> ✔ No evidence against causal assumptions (p = 0.85072 )
 print(nc_test)
-#> ── Negative Control Diagnostic ──────────────────────────────────
 #> 
-#> • δ_NC (observable): 0.0089 
-#> • δ bound (Theorem 5.2): 0.0089 (κ = 1)
-#> • p-value: 0.85
+#> -- Negative Control Diagnostic ----------------------------------------
 #> 
-#> ✔ NOT FALSIFIED: No evidence against causal assumptions
+#> * delta_NC (observable): 0.0089 
+#> * delta bound (NC bound): 0.0089 (kappa = 1 )
+#> * p-value: 0.85072 
+#> 
+#> RESULT: NOT REJECTED. We failed to catch an error, but that doesn't mean an error isn't there.
+#> NOTE: Your effect estimate must exceed the Noise Floor (delta_bound) to be meaningful.
 ```
 
-**Decision Logic:**
-- p > 0.05 → Adjustment appears adequate
-- p ≤ 0.05 → Residual confounding detected; consider additional covariates
+Here, the test does not reject (p = 0.851), and the observable proxy is
+$\widehat{\delta}_{NC} \approx$ 0.009.
 
-## Example 4: Survival Analysis
+## Example 4: Survival Analysis (HCT)
 
-```r
-library(causaldef)
-data(hct_outcomes)  # HCT registry data
+``` r
+data(hct_outcomes)
 
-# Specify survival outcome
+# Create an explicit 0/1 event indicator (any non-censor event)
+hct <- hct_outcomes
+hct$event_any <- as.integer(hct$event_status != "Censored")
+
 spec_surv <- causal_spec_survival(
-  data = hct_outcomes,
+  data = hct,
   treatment = "conditioning_intensity",
   time = "time_to_event",
-  event = "event_status",
+  event = "event_any",
   covariates = c("age", "disease_status", "kps", "donor_type"),
   estimand = "RMST",
-  horizon = 24  # 24-month restricted mean survival
+  horizon = 24
 )
+#> ✔ Created survival causal specification: n=800, 677 events
 
-# Estimate deficiency
-def_surv <- estimate_deficiency(spec_surv, methods = c("unadjusted", "iptw"))
+def_surv <- estimate_deficiency(spec_surv, methods = c("unadjusted", "cox_iptw"), n_boot = 50)
+#> ℹ Inferred treatment value: Reduced
+#> ℹ Estimating deficiency: unadjusted
+#> ℹ Estimating deficiency: cox_iptw
+print(def_surv)
+#> 
+#> -- Deficiency Proxy Estimates (PS-TV) ------
+#> 
+#>      Method  Delta     SE               CI            Quality
+#>  unadjusted 0.3030 0.0596 [0.2254, 0.4282] Insufficient (Red)
+#>    cox_iptw 0.0076 0.0047  [0.0079, 0.024]  Excellent (Green)
+#> Note: delta is a propensity-score TV proxy (overlap/balance diagnostic).
+#> 
+#> Best method: cox_iptw (delta = 0.0076 )
 
-# Compute safety floor in months
 bounds_surv <- policy_regret_bound(def_surv, utility_range = c(0, 24))
+#> ℹ Transfer penalty: 0.1823 (delta = 0.0076)
 print(bounds_surv)
-#> Safety floor: 1.4 months (worst-case decision error)
+#> 
+#> -- Policy Regret Bounds -------------------------------------------------
+#> 
+#> * Deficiency delta: 0.0076 
+#> * Delta mode: point 
+#> * Delta method: cox_iptw 
+#> * Utility range: [0, 24]
+#> * Transfer penalty: 0.1823 (additive regret upper bound)
+#> * Minimax floor: 0.0911 (worst-case lower bound)
+#> 
+#> Interpretation: Transfer penalty is 0.8 % of utility range given delta
 ```
-
-## Vignettes
-
-Comprehensive tutorials are available:
-
-| Vignette | Description |
-|----------|-------------|
-| `vignette("introduction")` | Getting started with causaldef |
-| `vignette("complete_workflow")` | End-to-end: Specify → Estimate → Diagnose → Decide |
-| `vignette("sensitivity_analysis")` | Deficiency vs. E-values comparison |
-| `vignette("negative_controls")` | Falsification diagnostics |
-| `vignette("survival_analysis")` | Time-to-event outcomes |
-| `vignette("policy_learning")` | Safe policy decisions |
-| `vignette("causaldef_methodology")` | Theoretical foundations |
-| `vignette("advanced_analysis")` | TMLE, matching, GRF methods |
 
 ## Theory
 
-Based on Akdemir (2026), ["Constraints on Causal Inference as Experiment Comparison"](https://doi.org/10.5281/zenodo.18367347).
+Based on Akdemir (2026), [“Constraints on Causal Inference as Experiment
+Comparison”](https://doi.org/10.5281/zenodo.18367347).
 
-**Core Theorem (Policy Regret Bound):**
+The core theorem links the deficiency $\delta$ (Total Variation
+distance) to the max-min regret:
 
-```
-Regret_do(π) ≤ Regret_obs(π) + 2M × δ
-```
+$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M \cdot \delta $$
 
-Where:
-- `Regret_do(π)` = regret under true interventional distribution
-- `Regret_obs(π)` = regret estimated from observational data  
-- `M` = range of the utility function
-- `δ` = Le Cam deficiency
-
-This provides a rigorous justification for using observational evidence in high-stakes decision making, provided δ is small.
+Where $M$ is the range of the utility function. In practice, the package
+provides plug-in bounds by feeding a computable proxy/estimate (e.g.,
+$\widehat{\delta}$) into the regret formula.
 
 ## Citation
 
-```bibtex
+``` bibtex
 @misc{causaldef,
   title = {causaldef: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency},
   author = {Akdemir, Deniz},
   year = {2026},
-  doi = {10.5281/zenodo.18367347},
-  url = {https://github.com/denizakdemir/causaldef},
-  note = {R package version 0.2.0}
+  doi = {10.5281/zenodo.18367347}
 }
 ```
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
-
-## License
-
-MIT © Deniz Akdemir

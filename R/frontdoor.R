@@ -1,5 +1,5 @@
 # =============================================================================
-# Front-Door Kernel Implementation (Theorem 2.2)
+# Front-Door Kernel Implementation (Front-Door Kernel Existence)
 # =============================================================================
 
 #' Front-Door Adjustment Kernel
@@ -37,7 +37,8 @@
 #' The front-door formula is:
 #' \deqn{P(Y|do(a)) = \sum_m P(M=m|A=a) \sum_{a'} P(Y|M=m, A=a') P(A=a')}
 #'
-#' When these assumptions hold, Theorem 2.2 guarantees delta = 0.
+#' When these assumptions hold, the manuscript's Front-Door Kernel Existence theorem
+#' (`thm:frontdoor`) implies \eqn{\delta = 0}.
 #'
 #' @examples
 #' # Simulate front-door scenario
@@ -57,7 +58,7 @@
 #' @references
 #' Pearl, J. (1995). Causal diagrams for empirical research. Biometrika.
 #' Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-#' See Theorem 2.2.
+#' See `thm:frontdoor` (Front-Door Kernel Existence).
 #'
 #' @seealso [estimate_deficiency()], [causal_spec()]
 #' @export
