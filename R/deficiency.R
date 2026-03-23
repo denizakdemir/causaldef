@@ -16,7 +16,7 @@
 #'     \item "tmle": Targeted maximum likelihood estimation (requires tmle package)
 #'     \item "matching": Propensity score matching (requires MatchIt package)
 #'     \item "grf": Generalized random forests (requires grf package)
-#'     \item "cox_iptw": Cox model with IPTW (survival outcomes, requires survival)
+#'     \item "cox_iptw": Cox model with IPTW (survival outcomes, requires survival and a compatible R runtime)
 #'   }
 #' @param treatment_value Numeric: intervention value for do(A=a)
 #' @param n_boot Integer: bootstrap replicates for CI (0 = none)
@@ -105,11 +105,8 @@ estimate_deficiency <- function(spec, methods = c("iptw", "aipw"),
       "i" = "Install with: {.code install.packages('grf')}"
     ))
   }
-  if ("cox_iptw" %in% methods && !requireNamespace("survival", quietly = TRUE)) {
-    cli::cli_abort(c(
-      "Method {.val cox_iptw} requires the {.pkg survival} package.",
-      "i" = "Install with: {.code install.packages('survival')}"
-    ))
+  if ("cox_iptw" %in% methods) {
+    .require_survival_runtime("Method cox_iptw")
   }
   
   # Enforce binary treatment restriction (current implementation limitation)

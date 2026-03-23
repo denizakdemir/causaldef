@@ -23,18 +23,44 @@ regret”** might we incur by acting on this evidence?
 
 The **deficiency** δ is a theoretical measure of the information gap
 between your observational data and a perfect randomized trial. In
-practice, `causaldef` provides a **computable proxy** $\widehat{\delta}$
-based on propensity-score TV balance (PS-TV), which is informative about
-overlap/positivity and residual confounding risk.
+practice, `causaldef` provides a **computable proxy**
+![\\widehat{\\delta}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D
+"\\widehat{\\delta}") based on propensity-score TV balance (PS-TV),
+which is informative about overlap/positivity and residual confounding
+risk.
 
-For bounded utilities with range $M$ (max minus min), the manuscript
-provides:
+For bounded utilities with range
+![M](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M
+"M") (max minus min), the manuscript provides:
 
-- a **regret transfer penalty** (upper bound term) of $M\cdot \delta$,
-  and
-- a minimax **safety floor** (lower bound) of $(M/2)\cdot \delta$.
+  - a **regret transfer penalty** (upper bound term) of ![M\\cdot
+    \\delta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M%5Ccdot%20%5Cdelta
+    "M\\cdot \\delta"), and
+  - a minimax **safety floor** (lower bound) of ![(M/2)\\cdot
+    \\delta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%28M%2F2%29%5Ccdot%20%5Cdelta
+    "(M/2)\\cdot \\delta").
 
 `policy_regret_bound()` reports both quantities.
+
+## Scientific Contract
+
+`causaldef` is theory-forward, but not every exported quantity is the
+same kind of object. The package distinguishes:
+
+  - **Theorem-backed quantities**: closed-form or theorem-aligned
+    utilities such as `policy_regret_bound()`,
+    `policy_regret_bound_vc()`, `confounding_frontier()`,
+    `sharp_lower_bound()`, and `wasserstein_deficiency_gaussian()`
+  - **Computable deficiency proxies**: `estimate_deficiency()` currently
+    returns a PS-TV proxy, not a generic nonparametric estimator of the
+    exact Le Cam deficiency
+  - **Sensitivity diagnostics**: `nc_diagnostic()` combines an
+    observable residual-association diagnostic with a user-supplied
+    alignment parameter `kappa`
+  - **Experimental heuristics**: some specialized modules expose effect
+    estimates together with heuristic proxy scores; those help with
+    exploration, but they should not be read as exact deficiency
+    estimators unless stated explicitly
 
 ## Installation
 
@@ -48,16 +74,16 @@ devtools::install_github("denizakdemir/causaldef")
 
 ## Core Features
 
-- **Deficiency proxies:** `estimate_deficiency()` (PS-TV overlap/balance
-  proxy)
-- **Policy regret bounds:** `policy_regret_bound()` (transfer penalty +
-  minimax floor)
-- **Negative control diagnostics:** `nc_diagnostic()` (falsification and
-  bounds)
-- **Sensitivity analysis:** `confounding_frontier()` (linear-Gaussian
-  confounding frontier)
-- **Survival + competing risks:** `causal_spec_survival()`,
-  `causal_spec_competing()`
+  - **Deficiency proxies:** `estimate_deficiency()` (PS-TV
+    overlap/balance proxy)
+  - **Policy regret bounds:** `policy_regret_bound()` (transfer penalty
+    + minimax floor)
+  - **Negative control diagnostics:** `nc_diagnostic()` (falsification
+    and bounds)
+  - **Sensitivity analysis:** `confounding_frontier()` (linear-Gaussian
+    confounding frontier)
+  - **Survival + competing risks:** `causal_spec_survival()`,
+    `causal_spec_competing()`
 
 ## Example 1: Basic Deficiency Estimation
 
@@ -101,11 +127,15 @@ print(results)
 #>        aipw 0.0212 0.0087 [0.0154, 0.0483]  Excellent (Green)
 #> Note: delta is a propensity-score TV proxy (overlap/balance diagnostic).
 #> 
-#> Best method: aipw (delta = 0.0212 )
+#> Best method: iptw (delta = 0.0212 )
 ```
 
-**Interpretation:** Unadjusted $\widehat{\delta} \approx$ 0.119; after
-IPTW/AIPW, $\widehat{\delta} \approx$ 0.021.
+**Interpretation:** Unadjusted ![\\widehat{\\delta}
+\\approx](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D%20%5Capprox
+"\\widehat{\\delta} \\approx") 0.119; after IPTW/AIPW,
+![\\widehat{\\delta}
+\\approx](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D%20%5Capprox
+"\\widehat{\\delta} \\approx") 0.021.
 
 ## Example 2: Policy Regret Bounds
 
@@ -114,7 +144,7 @@ drug), what is the worst-case loss?
 
 ``` r
 # Calculate bounds for a utility range of [0, 1]
-bounds <- policy_regret_bound(results, utility_range = c(0, 1))
+bounds <- policy_regret_bound(results, utility_range = c(0, 1), method = "aipw")
 #> ℹ Transfer penalty: 0.0212 (delta = 0.0212)
 
 print(bounds)
@@ -124,15 +154,20 @@ print(bounds)
 #> * Deficiency delta: 0.0212 
 #> * Delta mode: point 
 #> * Delta method: aipw 
+#> * Delta selection: pre-specified method 
 #> * Utility range: [0, 1]
 #> * Transfer penalty: 0.0212 (additive regret upper bound)
 #> * Minimax floor: 0.0106 (worst-case lower bound)
 #> 
+#> Note: this is a plug-in bound using a deficiency proxy rather than an identified exact deficiency.
+#> 
 #> Interpretation: Transfer penalty is 2.1 % of utility range given delta
 plot(bounds, type = "safety_curve")
+#> Warning: Ignoring unknown parameters: linewidth
+#> Warning: Ignoring unknown parameters: linewidth
 ```
 
-<img src="man/figures/README-regret-1.png" width="100%" />
+<img src="man/figures/README-regret-1.png" alt="" width="100%" />
 
 The plug-in transfer penalty is 0.0212 on a 0–1 utility scale; the
 minimax safety floor is 0.0106.
@@ -140,7 +175,9 @@ minimax safety floor is 0.0106.
 ## Example 3: Negative Control Diagnostic
 
 Check if the “Adjusted” strategy actually removes confounding using a
-negative control outcome $Y_{nc}$ (known to be unaffected by treatment).
+negative control outcome
+![Y\_{nc}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;Y_%7Bnc%7D
+"Y_{nc}") (known to be unaffected by treatment).
 
 ``` r
 # Add a negative control to simulation
@@ -158,21 +195,25 @@ spec_nc <- causal_spec(
 # Run diagnostic
 nc_test <- nc_diagnostic(spec_nc, method = "iptw")
 #> ℹ Using kappa = 1 (conservative). Consider domain-specific estimation or sensitivity analysis via kappa_range.
-#> ✔ No evidence against causal assumptions (p = 0.85072 )
+#> ✔ No evidence against causal assumptions (p = 0.8607 )
 print(nc_test)
 #> 
 #> -- Negative Control Diagnostic ----------------------------------------
 #> 
-#> * delta_NC (observable): 0.0089 
-#> * delta bound (NC bound): 0.0089 (kappa = 1 )
-#> * p-value: 0.85072 
+#> * screening statistic (weighted corr): 0.0089 
+#> * delta_NC (association proxy): 0.0089 
+#> * delta bound (under kappa alignment): 0.0089 (kappa = 1 )
+#> * screening p-value: 0.8607 
+#> * screening method: weighted_permutation_correlation 
 #> 
-#> RESULT: NOT REJECTED. We failed to catch an error, but that doesn't mean an error isn't there.
+#> RESULT: NOT REJECTED. This is a screening result, not proof that confounding is absent.
 #> NOTE: Your effect estimate must exceed the Noise Floor (delta_bound) to be meaningful.
 ```
 
-Here, the test does not reject (p = 0.851), and the observable proxy is
-$\widehat{\delta}_{NC} \approx$ 0.009.
+Here, the test does not reject (p = 0.861), and the observable proxy is
+![\\widehat{\\delta}\_{NC}
+\\approx](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D_%7BNC%7D%20%5Capprox
+"\\widehat{\\delta}_{NC} \\approx") 0.009.
 
 ## Example 4: Survival Analysis (HCT)
 
@@ -198,18 +239,69 @@ def_surv <- estimate_deficiency(spec_surv, methods = c("unadjusted", "cox_iptw")
 #> ℹ Inferred treatment value: Reduced
 #> ℹ Estimating deficiency: unadjusted
 #> ℹ Estimating deficiency: cox_iptw
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
+#> ! Weighted Cox model failed: could not find function "deparse1"
 print(def_surv)
 #> 
 #> -- Deficiency Proxy Estimates (PS-TV) ------
 #> 
 #>      Method  Delta     SE               CI            Quality
-#>  unadjusted 0.3030 0.0596 [0.2254, 0.4282] Insufficient (Red)
-#>    cox_iptw 0.0076 0.0047  [0.0079, 0.024]  Excellent (Green)
+#>  unadjusted 0.3030 0.0606 [0.2369, 0.4526] Insufficient (Red)
+#>    cox_iptw 0.0076 0.0047 [0.0066, 0.0247]  Excellent (Green)
 #> Note: delta is a propensity-score TV proxy (overlap/balance diagnostic).
 #> 
 #> Best method: cox_iptw (delta = 0.0076 )
 
-bounds_surv <- policy_regret_bound(def_surv, utility_range = c(0, 24))
+bounds_surv <- policy_regret_bound(def_surv, utility_range = c(0, 24), method = "cox_iptw")
 #> ℹ Transfer penalty: 0.1823 (delta = 0.0076)
 print(bounds_surv)
 #> 
@@ -218,9 +310,12 @@ print(bounds_surv)
 #> * Deficiency delta: 0.0076 
 #> * Delta mode: point 
 #> * Delta method: cox_iptw 
+#> * Delta selection: pre-specified method 
 #> * Utility range: [0, 24]
 #> * Transfer penalty: 0.1823 (additive regret upper bound)
 #> * Minimax floor: 0.0911 (worst-case lower bound)
+#> 
+#> Note: this is a plug-in bound using a deficiency proxy rather than an identified exact deficiency.
 #> 
 #> Interpretation: Transfer penalty is 0.8 % of utility range given delta
 ```
@@ -230,14 +325,24 @@ print(bounds_surv)
 Based on Akdemir (2026), [“Constraints on Causal Inference as Experiment
 Comparison”](https://doi.org/10.5281/zenodo.18367347).
 
-The core theorem links the deficiency $\delta$ (Total Variation
-distance) to the max-min regret:
+The core theorem links the deficiency
+![\\delta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cdelta
+"\\delta") (Total Variation distance) to the max-min regret:
 
-$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M \cdot \delta $$
+  
+![ \\text{Regret}\_{do}(\\pi) \\leq \\text{Regret}\_{obs}(\\pi) + M
+\\cdot \\delta
+](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%20%5Ctext%7BRegret%7D_%7Bdo%7D%28%5Cpi%29%20%5Cleq%20%5Ctext%7BRegret%7D_%7Bobs%7D%28%5Cpi%29%20%2B%20M%20%5Ccdot%20%5Cdelta%20
+" \\text{Regret}_{do}(\\pi) \\leq \\text{Regret}_{obs}(\\pi) + M \\cdot \\delta ")  
 
-Where $M$ is the range of the utility function. In practice, the package
-provides plug-in bounds by feeding a computable proxy/estimate (e.g.,
-$\widehat{\delta}$) into the regret formula.
+Where
+![M](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M
+"M") is the range of the utility function. In practice, the package
+often provides plug-in bounds by feeding a computable proxy/estimate
+(e.g.,
+![\\widehat{\\delta}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D
+"\\widehat{\\delta}")) into the regret formula, so the interpretation
+should track the underlying quantity being supplied.
 
 ## Citation
 

@@ -232,6 +232,8 @@ estimate_deficiency_competing <- function(spec,
   if (!inherits(spec, "causal_spec_competing")) {
     cli::cli_abort("spec must be a causal_spec_competing object")
   }
+
+  .require_survival_runtime("Competing-risks estimation")
   
   data <- spec$data
   n <- nrow(data)
@@ -334,66 +336,62 @@ estimate_deficiency_competing <- function(spec,
   time <- data[[spec$time]]
   event <- data[[spec$event]]
   
-  # Use survfit with multi-state if survival package available
-  if (requireNamespace("survival", quietly = TRUE)) {
-    # Create Surv object for competing risks
-    # Event codes: 0 = censored, 1 = primary, 2+ = competing
-    
-    # Weighted Aalen-Johansen estimator (approximation)
-    # For each event type, compute cause-specific CIF
-    
-    unique_times <- sort(unique(time[event > 0]))
-    cif_list <- list()
-    
-    for (k in spec$event_types) {
-      cif_k <- vapply(unique_times, function(t) {
-        # At-risk at time t
-        at_risk <- time >= t
-        # Events of type k at time t
-        events_k <- (time == t) & (event == k)
-        
-        if (sum(at_risk * weights) > 0) {
-          # Weighted cause-specific hazard
-          lambda_k <- sum(events_k * weights) / sum(at_risk * weights)
-        } else {
-          lambda_k <- 0
-        }
-        lambda_k
-      }, numeric(1))
+  .require_survival_runtime("Competing-risks estimation")
+
+  # Create Surv object for competing risks
+  # Event codes: 0 = censored, 1 = primary, 2+ = competing
+  
+  # Weighted Aalen-Johansen estimator (approximation)
+  # For each event type, compute cause-specific CIF
+  
+  unique_times <- sort(unique(time[event > 0]))
+  cif_list <- list()
+  
+  for (k in spec$event_types) {
+    cif_k <- vapply(unique_times, function(t) {
+      # At-risk at time t
+      at_risk <- time >= t
+      # Events of type k at time t
+      events_k <- (time == t) & (event == k)
       
-      # Cumulative incidence via product integral (Aalen-Johansen)
-      # F_k(t) = cumsum(S(t-) * lambda_k(t))
-      # Approximate S(t-) as product of (1 - sum_j lambda_j)
-      
-      all_hazards <- rep(0, length(unique_times))
-      for (j in spec$event_types) {
-        h_j <- vapply(unique_times, function(t) {
-          at_risk <- time >= t
-          events_j <- (time == t) & (event == j)
-          if (sum(at_risk * weights) > 0) {
-            sum(events_j * weights) / sum(at_risk * weights)
-          } else {
-            0
-          }
-        }, numeric(1))
-        all_hazards <- all_hazards + h_j
+      if (sum(at_risk * weights) > 0) {
+        # Weighted cause-specific hazard
+        lambda_k <- sum(events_k * weights) / sum(at_risk * weights)
+      } else {
+        lambda_k <- 0
       }
-      
-      surv <- cumprod(1 - all_hazards)
-      surv_minus <- c(1, head(surv, -1))
-      cif_cumulative <- cumsum(surv_minus * cif_k)
-      
-      cif_list[[as.character(k)]] <- data.frame(
-        time = unique_times,
-        cif = cif_cumulative
-      )
+      lambda_k
+    }, numeric(1))
+    
+    # Cumulative incidence via product integral (Aalen-Johansen)
+    # F_k(t) = cumsum(S(t-) * lambda_k(t))
+    # Approximate S(t-) as product of (1 - sum_j lambda_j)
+    
+    all_hazards <- rep(0, length(unique_times))
+    for (j in spec$event_types) {
+      h_j <- vapply(unique_times, function(t) {
+        at_risk <- time >= t
+        events_j <- (time == t) & (event == j)
+        if (sum(at_risk * weights) > 0) {
+          sum(events_j * weights) / sum(at_risk * weights)
+        } else {
+          0
+        }
+      }, numeric(1))
+      all_hazards <- all_hazards + h_j
     }
     
-    cif_list
+    surv <- cumprod(1 - all_hazards)
+    surv_minus <- c(1, head(surv, -1))
+    cif_cumulative <- cumsum(surv_minus * cif_k)
     
-  } else {
-    cli::cli_abort("Package {.pkg survival} required for competing risks")
+    cif_list[[as.character(k)]] <- data.frame(
+      time = unique_times,
+      cif = cif_cumulative
+    )
   }
+  
+  cif_list
 }
 
 #' @keywords internal

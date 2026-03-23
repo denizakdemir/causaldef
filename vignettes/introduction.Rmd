@@ -21,9 +21,9 @@ Unlike standard sensitivity analysis tools that output abstract bias parameters 
 ## The Core Workflow
 
 1.  **Specify**: Define your causal problem using `causal_spec()`.
-2.  **Estimate**: Calculate the deficiency $\delta$ of your adjustment strategy using `estimate_deficiency()`.
+2.  **Estimate**: Calculate a deficiency proxy $\delta$ for your adjustment strategy using `estimate_deficiency()`.
 3.  **Diagnose**: Test assumptions with `nc_diagnostic()` or `confounding_frontier()`.
-4.  **Decide**: Compute safety bounds for decision making using `policy_regret_bound()`.
+4.  **Decide**: Compute safety bounds for decision making using `policy_regret_bound()` with a pre-specified adjustment method.
 
 ## Example: Gene Perturbation Analysis
 
@@ -101,9 +101,9 @@ print(results)
 plot(results, type = "bar")
 ```
 
-**Interpreting Deficiency ($\delta$):**
+**Interpreting the PS-TV Deficiency Proxy ($\delta$):**
 
-The deficiency $\delta$ quantifies how far your observational data is from a perfect randomized trial:
+The current proxy $\delta$ quantifies how far the reweighted propensity-score distribution is from the target population:
 
 - **$\delta$ = 0**: Perfect identification – The weighted propensity distribution matches the target population perfectly (TV distance = 0).
 - **$\delta$ < 0.05**: Excellent – The distribution is indistinguishable from a randomized trial for most practical purposes.
@@ -145,14 +145,14 @@ The negative control diagnostic tests whether your adjustment removes ALL confou
 
 Suppose we need to decide whether to proceed with this gene target. What is the risk of being wrong due to remaining confounding?
 
-Using `policy_regret_bound()`, we can compute two decision-theoretic quantities from $\delta$:
+Using `policy_regret_bound()`, we can compute two decision-theoretic quantities from a pre-specified deficiency proxy:
 
 - a **transfer penalty** (upper bound term), and
 - a minimax **safety floor** (lower bound).
 
 ```{r decision}
 # Utility scale: 0 to 10 (e.g., normalized expression fold-change value)
-bounds <- policy_regret_bound(results, utility_range = c(0, 10))
+bounds <- policy_regret_bound(results, utility_range = c(0, 10), method = "iptw")
 
 print(bounds)
 ```
@@ -165,6 +165,8 @@ The bounds answer: *"How much regret could confounding add to my decision, and w
   - If transfer penalty = 0.2 on a 0--10 utility scale, confounding could add up to 0.2 units of regret in the worst case.
 - **Minimax safety floor = $(M/2)\cdot\delta$**: irreducible worst-case regret when $\delta>0$  
   - Even the best possible algorithm cannot guarantee worst-case regret smaller than this floor without stronger assumptions or randomized data.
+
+When `results` comes from `estimate_deficiency()`, these are plug-in bounds based on the PS-TV proxy rather than an identified exact deficiency.
 
 **Decision Rule:**
 
@@ -194,7 +196,7 @@ print(effect)
 **Reporting Guidelines:**
 
 1. Report the effect with the method used: "Using IPTW adjustment, the estimated ATE is..."
-2. Reference the deficiency: "The adjustment achieved $\delta$ = 0.XX, indicating [excellent/good/moderate] approximation to an RCT"
+2. Reference the proxy: "The adjustment achieved $\delta$ = 0.XX, indicating [excellent/good/moderate] approximation to an RCT under the PS-TV diagnostic"
 3. Mention diagnostic results: "The negative control diagnostic [passed/failed], suggesting [adequate/inadequate] control of confounding"
 4. State the bounds: "Transfer penalty is XX; minimax floor is YY on the chosen utility scale"
 

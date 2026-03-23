@@ -1,12 +1,11 @@
 # =============================================================================
-# Transport Deficiency: Measuring Distribution Shift
+# Transport Diagnostics: Measuring Distribution Shift
 # =============================================================================
 
-#' Transport Deficiency Between Source and Target Populations
+#' Transport Diagnostic Between Source and Target Populations
 #'
-#' Computes the deficiency for transporting causal effects from a source 
-#' population to a target population. This quantifies how much information 
-#' is lost when extrapolating treatment effects across populations.
+#' Computes a transport diagnostic for extrapolating causal effects from a source
+#' population to a target population.
 #'
 #' @param source_spec A causal_spec object for the source (training) population
 #' @param target_data Data frame: the target population (may have fewer variables)
@@ -22,7 +21,9 @@
 #'
 #' @return Object of class "transport_deficiency" containing:
 #'   \itemize{
-#'     \item delta_transport: The transport deficiency
+#'     \item delta_transport_proxy: Heuristic transport-risk proxy combining
+#'     covariate shift, weight instability, and sample-size imbalance
+#'     \item delta_transport: Backward-compatible alias of `delta_transport_proxy`
 #'     \item covariate_shift: Per-variable shift diagnostics
 #'     \item weights: Transport weights for source observations
 #'     \item ate_source: ATE estimate in source population
@@ -30,10 +31,10 @@
 #'   }
 #'
 #' @details
-#' Transport deficiency measures how much causal information is lost when 
-#' moving from source S to target T:
-#'
-#' \deqn{\delta_{transport} = \delta(\mathcal{E}_S, \mathcal{E}_T)}
+#' A transport problem can be framed through deficiency, but the current release
+#' does \emph{not} estimate an exact transport deficiency. Instead, it returns a
+#' heuristic transport-risk proxy that combines observable covariate shift,
+#' transport-weight instability, and source/target sample-size imbalance.
 #'
 #' Key assumptions for valid transport:
 #' \enumerate{
@@ -57,7 +58,7 @@
 #' target_df <- data.frame(age = age_t, S = 0)
 #'
 #' source_spec <- causal_spec(source_df, "A", "Y", "age")
-#' \dontrun{
+#' \donttest{
 #' transport <- transport_deficiency(
 #'   source_spec,
 #'   target_data = target_df,
@@ -120,8 +121,8 @@ transport_deficiency <- function(source_spec, target_data,
   ate_source <- .estimate_source_ate(source_spec)
   ate_target <- .estimate_transported_ate(source_spec, weights_result$weights)
   
-  # Compute transport deficiency
-  delta_transport <- .compute_transport_delta(
+  # Compute heuristic transport proxy
+  delta_transport_proxy <- .compute_transport_delta(
     cov_shift, 
     weights_result$extreme_weights,
     n_source, n_target
@@ -156,7 +157,8 @@ transport_deficiency <- function(source_spec, target_data,
   
   result <- structure(
     list(
-      delta_transport = delta_transport,
+      delta_transport_proxy = delta_transport_proxy,
+      delta_transport = delta_transport_proxy,
       se = se,
       ci = ci,
       covariate_shift = cov_shift,
@@ -173,17 +175,17 @@ transport_deficiency <- function(source_spec, target_data,
   )
   
   # Report
-  delta_str <- sprintf("%.3f", delta_transport)
+  delta_str <- sprintf("%.3f", delta_transport_proxy)
   ess_ratio <- sprintf("%.1f%%", 100 * weights_result$ess / n_source)
   
-  if (delta_transport < 0.1) {
-    cli::cli_alert_success("Transport deficiency: {delta_str} (ESS: {ess_ratio})")
+  if (delta_transport_proxy < 0.1) {
+    cli::cli_alert_success("Transport proxy: {delta_str} (ESS: {ess_ratio})")
     cli::cli_alert_info("Effect transport appears reliable")
-  } else if (delta_transport < 0.25) {
-    cli::cli_alert_warning("Transport deficiency: {delta_str} (ESS: {ess_ratio})")
+  } else if (delta_transport_proxy < 0.25) {
+    cli::cli_alert_warning("Transport proxy: {delta_str} (ESS: {ess_ratio})")
     cli::cli_alert_info("Moderate distribution shift; interpret with caution")
   } else {
-    cli::cli_alert_danger("Transport deficiency: {delta_str} (ESS: {ess_ratio})")
+    cli::cli_alert_danger("Transport proxy: {delta_str} (ESS: {ess_ratio})")
     cli::cli_alert_info("Severe distribution shift; transport may be unreliable")
   }
   
@@ -344,7 +346,7 @@ transport_deficiency <- function(source_spec, target_data,
   # Penalty for extreme weights
   weight_penalty <- extreme_weights * 0.5
   
-  # Combined deficiency (heuristic)
+  # Combined heuristic proxy
   delta <- min(1, mean_shift * 0.5 + size_penalty + weight_penalty)
   
   delta
@@ -355,13 +357,13 @@ transport_deficiency <- function(source_spec, target_data,
 #' @param ... Additional arguments (unused)
 #' @export
 print.transport_deficiency <- function(x, ...) {
-  cli::cli_h1("Transport Deficiency Analysis")
+  cli::cli_h1("Transport Diagnostic Analysis")
   cli::cli_text("Method: {.val {x$method}}")
   cli::cli_text("Source n: {.val {x$n_source}} | Target n: {.val {x$n_target}}")
   cli::cli_text("")
   
-  cli::cli_h2("Transport Deficiency")
-  cat(sprintf("  delta_transport:           %.4f\n", x$delta_transport))
+  cli::cli_h2("Transport Diagnostic")
+  cat(sprintf("  transport proxy:       %.4f\n", x$delta_transport_proxy))
   if (!is.na(x$se)) {
     cat(sprintf("  Standard error:        %.4f\n", x$se))
     cat(sprintf("  95%% CI:               [%.4f, %.4f]\n", x$ci[1], x$ci[2]))
@@ -369,6 +371,7 @@ print.transport_deficiency <- function(x, ...) {
   cat(sprintf("  Effective sample size: %.1f (%.1f%% of source)\n", 
               x$effective_sample_size,
               100 * x$effective_sample_size / x$n_source))
+  cat("  Note: this is a heuristic transport-risk proxy, not an exact transport deficiency.\n")
   
   cli::cli_h2("Covariate Shift")
   print(x$covariate_shift)

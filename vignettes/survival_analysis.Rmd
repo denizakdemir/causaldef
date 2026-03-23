@@ -8,7 +8,7 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-eval_surv <- getRversion() >= "4.0.0"
+eval_surv <- getRversion() >= "4.0.0" && requireNamespace("survival", quietly = TRUE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -16,6 +16,9 @@ knitr::opts_chunk$set(
 ```
 
 **causaldef** supports survival analysis and competing risks. This is critical for clinical applications where "time-to-event" is the primary outcome.
+
+The executable survival examples in this vignette require a compatible
+`survival` runtime. In the current support matrix, that means `R >= 4.0`.
 
 ## Survival Specification
 
@@ -247,8 +250,9 @@ The deficiency $\delta$ we calculated earlier tells us how much we can trust thi
 
 ```{r safety_floor, eval = eval_surv}
 # Calculate policy regret bounds (transfer penalty + minimax floor)
-# Utility range is [0, horizon] (months of survival)
-bound <- policy_regret_bound(results_hct, utility_range = c(0, horizon))
+# Utility range is [0, horizon] (months of survival).
+# The bound is tied to the previously estimated IPTW deficiency proxy.
+bound <- policy_regret_bound(results_hct, utility_range = c(0, horizon), method = "iptw")
 print(bound)
 ```
 

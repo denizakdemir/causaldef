@@ -36,6 +36,15 @@ For bounded utilities with range \(M\) (max minus min), the manuscript provides:
 
 `policy_regret_bound()` reports both quantities.
 
+## Scientific Contract
+
+`causaldef` is theory-forward, but not every exported quantity is the same kind of object. The package distinguishes:
+
+- **Theorem-backed quantities**: closed-form or theorem-aligned utilities such as `policy_regret_bound()`, `policy_regret_bound_vc()`, `confounding_frontier()`, `sharp_lower_bound()`, and `wasserstein_deficiency_gaussian()`
+- **Computable deficiency proxies**: `estimate_deficiency()` currently returns a PS-TV proxy, not a generic nonparametric estimator of the exact Le Cam deficiency
+- **Sensitivity diagnostics**: `nc_diagnostic()` combines an observable residual-association diagnostic with a user-supplied alignment parameter `kappa`
+- **Experimental heuristics**: some specialized modules expose effect estimates together with heuristic proxy scores; those help with exploration, but they should not be read as exact deficiency estimators unless stated explicitly
+
 ## Installation
 
 You can install the development version of causaldef from [GitHub](https://github.com/) with:
@@ -92,7 +101,7 @@ If we use this evidence to make a policy decision (e.g., approve a drug), what i
 
 ```{r regret}
 # Calculate bounds for a utility range of [0, 1]
-bounds <- policy_regret_bound(results, utility_range = c(0, 1))
+bounds <- policy_regret_bound(results, utility_range = c(0, 1), method = "aipw")
 
 print(bounds)
 plot(bounds, type = "safety_curve")
@@ -145,7 +154,7 @@ spec_surv <- causal_spec_survival(
 def_surv <- estimate_deficiency(spec_surv, methods = c("unadjusted", "cox_iptw"), n_boot = 50)
 print(def_surv)
 
-bounds_surv <- policy_regret_bound(def_surv, utility_range = c(0, 24))
+bounds_surv <- policy_regret_bound(def_surv, utility_range = c(0, 24), method = "cox_iptw")
 print(bounds_surv)
 ```
 
@@ -157,7 +166,7 @@ The core theorem links the deficiency $\delta$ (Total Variation distance) to the
 
 $$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M \cdot \delta $$
 
-Where $M$ is the range of the utility function. In practice, the package provides plug-in bounds by feeding a computable proxy/estimate (e.g., $\widehat{\delta}$) into the regret formula.
+Where $M$ is the range of the utility function. In practice, the package often provides plug-in bounds by feeding a computable proxy/estimate (e.g., $\widehat{\delta}$) into the regret formula, so the interpretation should track the underlying quantity being supplied.
 
 ## Citation
 

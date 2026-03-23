@@ -21,7 +21,13 @@
 #'   }
 #' 
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' set.seed(42)
+#' n <- 200
+#' W <- rnorm(n)
+#' A <- rbinom(n, 1, plogis(0.5 * W))
+#' Y <- 1 + 2 * A + W + rnorm(n)
+#' df <- data.frame(W = W, A = A, Y = Y)
 #' spec <- causal_spec(df, "A", "Y", "W")
 #' def <- estimate_deficiency(spec, methods = "iptw")
 #' effect <- estimate_effect(def)
@@ -202,9 +208,7 @@ estimate_effect.deficiency <- function(object, target_method = NULL,
 }
 
 .estimate_effect_survival <- function(spec, kernel, method, contrast, ...) {
-  if (!requireNamespace("survival", quietly = TRUE)) {
-    .msg_error("Package 'survival' needed for survival effect estimation.")
-  }
+  .require_survival_runtime("Survival effect estimation")
   
   data <- spec$data
   treated_val <- contrast[1]

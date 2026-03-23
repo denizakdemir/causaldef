@@ -58,7 +58,7 @@ cat("Bias:", round(naive_est - true_att, 2), "\n")
 The massive bias (negative effect instead of positive) confirms the difficulty of this problem.
 
 ### Deficiency Estimation
-We now calculate the deficiency $\delta(E_{obs}, E_{do})$ using the available covariates.
+We now calculate a deficiency proxy $\delta(E_{obs}, E_{do})$ using the available covariates.
 ```{r lalonde-def}
 covariates <- c("age", "education", "black", "hispanic", "married", "nodegree", "re74", "re75")
 
@@ -81,7 +81,7 @@ print(res_lalonde)
 plot(res_lalonde)
 ```
 
-The deficiency $\delta$ quantifies the distance between the observational distribution and the target randomized experiment. A lower $\delta$ indicates that the reweighting successfully reconstructed the experimental conditions.
+The proxy $\delta$ summarizes the distance between the reweighted observational distribution and the target randomized experiment. A lower $\delta$ indicates that the reweighting more closely reconstructed the experimental conditions under the PS-TV diagnostic.
 
 ## 2. Right Heart Catheterization (RHC)
 
@@ -136,7 +136,7 @@ The "Safety Floor" tells us the minimum regret we risk by making a decision base
 # We want to minimize outcome (death). 
 # This is equivalent to utility range [0, 1].
 
-bounds_rhc <- policy_regret_bound(res_rhc, utility_range = c(0, 1))
+bounds_rhc <- policy_regret_bound(res_rhc, utility_range = c(0, 1), method = "iptw")
 print(bounds_rhc)
 ```
 The result typically shows a low safety floor (e.g., < 0.05), suggesting that the observational findings are actionable unless the decision hinges on a very small utility difference.

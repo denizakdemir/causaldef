@@ -226,7 +226,8 @@ run_causaldef_app <- function(data = NULL, port = 3838, launch.browser = TRUE) {
       bounds <- policy_regret_bound(
         res$deficiency,
         utility_range = c(input$utility_min, input$utility_max),
-        obs_regret = input$obs_regret
+        obs_regret = input$obs_regret,
+        method = names(which.min(res$deficiency$estimates))
       )
       
       plot(bounds, type = "safety_curve")
@@ -239,7 +240,8 @@ run_causaldef_app <- function(data = NULL, port = 3838, launch.browser = TRUE) {
       bounds <- policy_regret_bound(
         res$deficiency,
         utility_range = c(input$utility_min, input$utility_max),
-        obs_regret = input$obs_regret
+        obs_regret = input$obs_regret,
+        method = names(which.min(res$deficiency$estimates))
       )
       
       print(bounds)

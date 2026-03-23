@@ -65,14 +65,21 @@ print.deficiency <- function(x, ...) {
 #' @export
 print.nc_diagnostic <- function(x, ...) {
   cat("\n-- Negative Control Diagnostic ", paste(rep("-", 40), collapse = ""), "\n\n", sep = "")
-  cat("* delta_NC (observable):", round(x$delta_nc, 4), "\n")
-  cat("* delta bound (NC bound):", round(x$delta_bound, 4), "(kappa =", x$kappa, ")\n")
-  cat("* p-value:", format.pval(x$p_value), "\n\n")
+  if (!is.null(x$screening$statistic)) {
+    cat("* screening statistic (weighted corr):", round(x$screening$statistic, 4), "\n")
+  }
+  cat("* delta_NC (association proxy):", round(x$delta_nc, 4), "\n")
+  cat("* delta bound (under kappa alignment):", round(x$delta_bound, 4), "(kappa =", x$kappa, ")\n")
+  cat("* screening p-value:", format.pval(x$p_value), "\n")
+  if (!is.null(x$screening$method)) {
+    cat("* screening method:", x$screening$method, "\n")
+  }
+  cat("\n")
   
   if (x$falsified) {
-    cat("RESULT: REJECTED. Evidence of residual confounding.\n")
+    cat("RESULT: REJECTED. Residual negative-control association was detected.\n")
   } else {
-    cat("RESULT: NOT REJECTED. We failed to catch an error, but that doesn't mean an error isn't there.\n")
+    cat("RESULT: NOT REJECTED. This is a screening result, not proof that confounding is absent.\n")
     cat("NOTE: Your effect estimate must exceed the Noise Floor (delta_bound) to be meaningful.\n")
   }
   cat("\n")
@@ -89,6 +96,17 @@ print.policy_bound <- function(x, ...) {
   }
   if (!is.null(x$delta_method) && nzchar(x$delta_method)) {
     cat("* Delta method:", x$delta_method, "\n")
+  }
+  if (!is.null(x$delta_selection)) {
+    selection_label <- switch(
+      x$delta_selection,
+      explicit_method = "pre-specified method",
+      single_method = "single fitted method",
+      optimistic_minimum = "minimum across fitted methods",
+      numeric_input = "numeric input",
+      x$delta_selection
+    )
+    cat("* Delta selection:", selection_label, "\n")
   }
   cat("* Utility range: [", x$utility_range[1], ", ", x$utility_range[2], "]\n", sep = "")
   if (!is.null(x$transfer_penalty)) {
@@ -110,6 +128,12 @@ print.policy_bound <- function(x, ...) {
   
   penalty <- if (!is.null(x$transfer_penalty)) x$transfer_penalty else x$safety_floor
   pct <- round(100 * penalty / x$M, 1)
+  if (isTRUE(x$delta_is_proxy)) {
+    cat("\nNote: this is a plug-in bound using a deficiency proxy rather than an identified exact deficiency.\n")
+  }
+  if (identical(x$delta_selection, "optimistic_minimum")) {
+    cat("Note: minimum-across-methods selection is optimistic after model selection.\n")
+  }
   cat("\nInterpretation: Transfer penalty is", pct, "% of utility range given delta\n\n")
   
   invisible(x)

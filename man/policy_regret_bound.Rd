@@ -9,7 +9,8 @@ policy_regret_bound(
   utility_range = c(0, 1),
   obs_regret = NULL,
   policy_class = NULL,
-  delta_mode = c("point", "upper")
+  delta_mode = c("point", "upper"),
+  method = NULL
 )
 }
 \arguments{
@@ -26,6 +27,10 @@ policy_regret_bound(
 \item "point": use the minimum point estimate (default)
 \item "upper": use the minimum upper CI bound (more conservative; requires bootstrap)
 }}
+
+\item{method}{Character: when \code{deficiency} is a \code{deficiency} object, which fitted
+method to use when translating the estimate into a regret bound. Strongly
+recommended whenever multiple methods were compared.}
 }
 \value{
 Object of class "policy_bound" containing:
@@ -35,6 +40,7 @@ Object of class "policy_bound" containing:
 \item transfer_penalty: Additive regret penalty = M*\eqn{\delta}
 \item minimax_floor: Minimax lower bound = (M/2)*\eqn{\delta}
 \item delta: Deficiency value used
+\item delta_selection: How the \eqn{\delta} value was selected
 \item utility_range: Range of utility function
 \item M: Utility range (max - min)
 }
@@ -49,6 +55,12 @@ For any policy \eqn{\pi} learned from observational data, the regret bound is:
 
 The "transfer penalty" \eqn{M\delta} quantifies worst-case regret inflation from
 the information gap between observational and interventional experiments.
+
+When a multi-method \code{deficiency} object is supplied, the safest workflow is to
+pre-specify \code{method} before calling \code{policy_regret_bound()}. If \code{method} is omitted,
+the current implementation falls back to the smallest available estimate (or upper
+confidence limit), which is convenient for exploration but optimistic after
+post-selection.
 
 Separately, a minimax lower bound ("minimax floor") of \eqn{(M/2)\delta} holds for
 bounded utilities (see manuscript theorem \code{thm:safety_floor}).

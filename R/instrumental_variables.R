@@ -1,11 +1,11 @@
 # =============================================================================
-# Instrumental Variable Estimation with Deficiency Bounds
+# Instrumental Variable Estimation with Strength Diagnostics
 # =============================================================================
 
 #' Instrumental Variable Effect Estimation
 #'
-#' Estimates causal effects using instrumental variables (IV) with deficiency
-#' bounds for the strength of the instrument.
+#' Estimates causal effects using instrumental variables (IV) together with
+#' first-stage strength diagnostics.
 #'
 #' @param spec A causal_spec object with instrument specified
 #' @param instrument Character: name of the instrumental variable (or use spec$instrument)
@@ -13,7 +13,8 @@
 #'   \itemize{
 #'     \item "2sls": Two-stage least squares
 #'     \item "wald": Wald estimator (ratio of reduced forms)
-#'     \item "liml": Limited information maximum likelihood
+#'     \item "liml": Reserved for a future limited-information maximum likelihood
+#'     implementation. The current release errors if requested.
 #'   }
 #' @param n_boot Integer: bootstrap replicates for CI
 #' @param ci_level Numeric: confidence level
@@ -26,7 +27,8 @@
 #'     \item ci: Confidence interval
 #'     \item f_stat: First-stage F-statistic
 #'     \item weak_iv: Logical, whether instrument is weak
-#'     \item deficiency: Deficiency bound from instrument strength
+#'     \item deficiency_proxy: Heuristic proxy derived from first-stage strength
+#'     \item deficiency: Backward-compatible alias of `deficiency_proxy`
 #'   }
 #'
 #' @details
@@ -38,10 +40,10 @@
 #'   \item Independence: Z is independent of unmeasured confounders
 #' }
 #'
-#' The IV deficiency bound relates to instrument strength:
-#' \deqn{\delta_{IV} \propto 1 / \sqrt{F}}
-#'
-#' Weak instruments (F < 10) lead to high deficiency and unreliable inference.
+#' Weak instruments (small first-stage F-statistics) lead to unstable IV inference.
+#' The current implementation reports a `deficiency_proxy` derived from instrument
+#' strength; it should be interpreted as a screening diagnostic rather than an exact
+#' Le Cam deficiency.
 #'
 #' @examples
 #' # Simulate IV setting
@@ -56,7 +58,7 @@
 #' df <- data.frame(Z = Z, A = A, Y = Y)
 #' spec <- causal_spec(df, "A", "Y", instrument = "Z")
 #' 
-#' \dontrun{
+#' \donttest{
 #' iv_result <- iv_effect(spec)
 #' print(iv_result)
 #' }
@@ -73,6 +75,14 @@ iv_effect <- function(spec, instrument = NULL,
                       weak_iv_threshold = 10) {
   
   method <- match.arg(method)
+
+  if (identical(method, "liml")) {
+    cli::cli_abort(c(
+      "Method {.val liml} is not available in this release.",
+      "x" = "The previous approximation was not a valid LIML estimator.",
+      "i" = "Use {.val 2sls} or {.val wald}."
+    ))
+  }
   
   # Validation
   if (!inherits(spec, "causal_spec")) {
@@ -132,49 +142,7 @@ iv_effect <- function(spec, instrument = NULL,
   
   weak_iv <- is.na(f_stat) || f_stat < weak_iv_threshold
   
-  # Compute IV estimate
-  if (method == "2sls") {
-    # Two-stage least squares
-    A_hat <- fitted(first_stage)
-    
-    if (!is.null(W)) {
-      second_stage <- lm(Y ~ A_hat + W)
-    } else {
-      second_stage <- lm(Y ~ A_hat)
-    }
-    
-    estimate <- coef(second_stage)["A_hat"]
-    names(estimate) <- NULL
-    
-  } else if (method == "wald") {
-    # Wald estimator: Cov(Y, Z) / Cov(A, Z)
-    cov_yz <- cov(Y, Z)
-    cov_az <- cov(A, Z)
-    
-    if (abs(cov_az) < 1e-10) {
-      cli::cli_abort("Instrument has no variation with treatment (Cov(A,Z) ~ 0)")
-    }
-    
-    estimate <- cov_yz / cov_az
-    
-  } else if (method == "liml") {
-    # Limited information maximum likelihood
-    # Simplified: use 2SLS for now with bias correction
-    A_hat <- fitted(first_stage)
-    
-    if (!is.null(W)) {
-      second_stage <- lm(Y ~ A_hat + W)
-    } else {
-      second_stage <- lm(Y ~ A_hat)
-    }
-    
-    raw_estimate <- coef(second_stage)["A_hat"]
-    
-    # LIML bias correction factor
-    k <- 1 + (n - ncol(model.matrix(first_stage))) / f_stat
-    estimate <- raw_estimate * k
-    names(estimate) <- NULL
-  }
+  estimate <- .compute_iv_estimate(A = A, Y = Y, Z = Z, W = W, method = method)
   
   # Bootstrap for SE and CI
   if (n_boot > 0) {
@@ -183,19 +151,15 @@ iv_effect <- function(spec, instrument = NULL,
       boot_A <- A[idx]
       boot_Y <- Y[idx]
       boot_Z <- Z[idx]
-      
-      if (!is.null(W)) {
-        boot_W <- W[idx, , drop = FALSE]
-        boot_first <- lm(boot_A ~ boot_Z + boot_W)
-        boot_A_hat <- fitted(boot_first)
-        boot_second <- lm(boot_Y ~ boot_A_hat + boot_W)
-      } else {
-        boot_first <- lm(boot_A ~ boot_Z)
-        boot_A_hat <- fitted(boot_first)
-        boot_second <- lm(boot_Y ~ boot_A_hat)
-      }
-      
-      coef(boot_second)["boot_A_hat"]
+      boot_W <- if (!is.null(W)) W[idx, , drop = FALSE] else NULL
+
+      .compute_iv_estimate(
+        A = boot_A,
+        Y = boot_Y,
+        Z = boot_Z,
+        W = boot_W,
+        method = method
+      )
     }
     
     boot_estimates <- vapply(seq_len(n_boot), boot_fn, numeric(1))
@@ -209,11 +173,9 @@ iv_effect <- function(spec, instrument = NULL,
     ci <- c(NA_real_, NA_real_)
   }
   
-  # Deficiency from instrument strength
-  # delta_IV proportional to 1/sqrt(F) - weaker instruments have higher deficiency
+  # Heuristic proxy from instrument strength
   if (!is.na(f_stat) && f_stat > 0) {
-    delta_iv <- min(1, 10 / f_stat)  # Normalized so F=10 gives delta=1
-    delta_iv <- 1 - exp(-delta_iv)   # Smooth mapping to [0, 1)
+    delta_iv <- min(1, sqrt(weak_iv_threshold / f_stat))
   } else {
     delta_iv <- 1.0
   }
@@ -225,6 +187,7 @@ iv_effect <- function(spec, instrument = NULL,
       ci = ci,
       f_stat = f_stat,
       weak_iv = weak_iv,
+      deficiency_proxy = delta_iv,
       deficiency = delta_iv,
       method = method,
       instrument = instrument,
@@ -240,14 +203,42 @@ iv_effect <- function(spec, instrument = NULL,
   
   if (weak_iv) {
     cli::cli_alert_warning("Weak instrument (F = {f_str} < {weak_iv_threshold})")
-    cli::cli_alert_warning("IV estimate: {round(estimate, 3)} (delta = {delta_str})")
+    cli::cli_alert_warning("IV estimate: {round(estimate, 3)} (proxy = {delta_str})")
     cli::cli_alert_info("Consider finding a stronger instrument")
   } else {
     cli::cli_alert_success("Strong instrument (F = {f_str})")
-    cli::cli_alert_success("IV estimate (LATE): {round(estimate, 3)} (delta = {delta_str})")
+    cli::cli_alert_success("IV estimate (LATE): {round(estimate, 3)} (proxy = {delta_str})")
   }
   
   result
+}
+
+#' @keywords internal
+.compute_iv_estimate <- function(A, Y, Z, W = NULL, method = c("2sls", "wald")) {
+  method <- match.arg(method)
+
+  if (method == "wald") {
+    cov_yz <- cov(Y, Z)
+    cov_az <- cov(A, Z)
+
+    if (abs(cov_az) < 1e-10) {
+      cli::cli_abort("Instrument has no variation with treatment (Cov(A,Z) ~ 0)")
+    }
+
+    return(unname(cov_yz / cov_az))
+  }
+
+  if (!is.null(W)) {
+    first_stage <- lm(A ~ Z + W)
+    A_hat <- fitted(first_stage)
+    second_stage <- lm(Y ~ A_hat + W)
+  } else {
+    first_stage <- lm(A ~ Z)
+    A_hat <- fitted(first_stage)
+    second_stage <- lm(Y ~ A_hat)
+  }
+
+  unname(coef(second_stage)["A_hat"])
 }
 
 #' Print method for iv_effect
@@ -273,16 +264,16 @@ print.iv_effect <- function(x, ...) {
     cat(sprintf("  95%% CI:     [%.4f, %.4f]\n", x$ci[1], x$ci[2]))
   }
   
-  cat(sprintf("  Deficiency:  %.4f\n", x$deficiency))
+  cat(sprintf("  Strength proxy: %.4f\n", x$deficiency_proxy))
   
   cat("\n")
   if (x$weak_iv) {
     cli::cli_alert_danger("WARNING: Weak instrument may bias estimates toward OLS")
-    cli::cli_alert_info("Consider: (1) stronger instrument, (2) more observations, (3) LIML method")
-  } else if (x$deficiency < 0.2) {
-    cli::cli_alert_success("IV assumptions appear reasonable (delta < 0.2)")
+    cli::cli_alert_info("Consider: (1) stronger instrument, (2) more observations, (3) alternative robust IV methods outside the current package release")
+  } else if (x$deficiency_proxy < 0.2) {
+    cli::cli_alert_success("First-stage strength looks good under the current proxy.")
   } else {
-    cli::cli_alert_warning("Moderate instrument weakness (delta = {round(x$deficiency, 3)})")
+    cli::cli_alert_warning("Moderate instrument weakness under the current proxy.")
   }
   
   invisible(x)
@@ -312,7 +303,7 @@ summary.iv_effect <- function(object, ...) {
   cat("\nDiagnostics:\n")
   cat("  F-statistic:", round(object$f_stat, 2), "\n")
   cat("  Weak IV:", if (object$weak_iv) "Yes" else "No", "\n")
-  cat("  Deficiency:", round(object$deficiency, 4), "\n")
+  cat("  Strength proxy:", round(object$deficiency_proxy, 4), "\n")
   
   invisible(object)
 }

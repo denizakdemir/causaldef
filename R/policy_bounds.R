@@ -16,6 +16,9 @@
 #'     \item "point": use the minimum point estimate (default)
 #'     \item "upper": use the minimum upper CI bound (more conservative; requires bootstrap)
 #'   }
+#' @param method Character: when `deficiency` is a `deficiency` object, which fitted
+#'   method to use when translating the estimate into a regret bound. Strongly
+#'   recommended whenever multiple methods were compared.
 #'
 #' @return Object of class "policy_bound" containing:
 #'   \itemize{
@@ -24,6 +27,7 @@
 #'     \item transfer_penalty: Additive regret penalty = M*\eqn{\delta}
 #'     \item minimax_floor: Minimax lower bound = (M/2)*\eqn{\delta}
 #'     \item delta: Deficiency value used
+#'     \item delta_selection: How the \eqn{\delta} value was selected
 #'     \item utility_range: Range of utility function
 #'     \item M: Utility range (max - min)
 #'   }
@@ -34,6 +38,12 @@
 #'
 #' The "transfer penalty" \eqn{M\delta} quantifies worst-case regret inflation from
 #' the information gap between observational and interventional experiments.
+#'
+#' When a multi-method `deficiency` object is supplied, the safest workflow is to
+#' pre-specify `method` before calling `policy_regret_bound()`. If `method` is omitted,
+#' the current implementation falls back to the smallest available estimate (or upper
+#' confidence limit), which is convenient for exploration but optimistic after
+#' post-selection.
 #'
 #' Separately, a minimax lower bound ("minimax floor") of \eqn{(M/2)\delta} holds for
 #' bounded utilities (see manuscript theorem `thm:safety_floor`).
@@ -68,29 +78,56 @@
 #' @export
 policy_regret_bound <- function(deficiency, utility_range = c(0, 1),
                                 obs_regret = NULL, policy_class = NULL,
-                                delta_mode = c("point", "upper")) {
+                                delta_mode = c("point", "upper"),
+                                method = NULL) {
   
   delta_mode <- match.arg(delta_mode)
   
   # Extract delta from deficiency object or use numeric value
   all_estimates <- NULL
   delta_method <- NULL
+  delta_selection <- "numeric_input"
+  delta_is_proxy <- FALSE
   if (inherits(deficiency, "deficiency")) {
     all_estimates <- deficiency$estimates
-    
+    delta_is_proxy <- identical(deficiency$metric, "ps_tv")
+    available_methods <- names(deficiency$estimates)
+
+    if (!is.null(method)) {
+      checkmate::assert_choice(method, available_methods)
+      candidate_methods <- method
+      delta_selection <- "explicit_method"
+    } else if (length(available_methods) == 1) {
+      candidate_methods <- available_methods
+      delta_selection <- "single_method"
+    } else {
+      candidate_methods <- available_methods
+      delta_selection <- "optimistic_minimum"
+      cli::cli_warn(c(
+        "Multiple fitted methods are available but {.arg method} was not specified.",
+        "i" = "Using the smallest available delta across methods is optimistic after model selection.",
+        "i" = "For a pre-specified decision bound, call {.fn policy_regret_bound} with {.code method = '<chosen method>'}."
+      ))
+    }
+
     if (delta_mode == "upper") {
       if (!is.null(deficiency$ci) && !all(is.na(deficiency$ci)) && ncol(deficiency$ci) == 2) {
-        upper <- deficiency$ci[, 2]
+        upper <- deficiency$ci[candidate_methods, 2]
+        if (is.null(names(upper))) {
+          names(upper) <- candidate_methods
+        }
         delta_method <- names(which.min(upper))
         delta <- unname(min(upper))
       } else {
         .msg_warning("No confidence intervals available; falling back to point estimates for delta.")
-        delta_method <- names(which.min(deficiency$estimates))
-        delta <- unname(min(deficiency$estimates))
+        subset_estimates <- deficiency$estimates[candidate_methods]
+        delta_method <- names(which.min(subset_estimates))
+        delta <- unname(min(subset_estimates))
       }
     } else {
-      delta_method <- names(which.min(deficiency$estimates))
-      delta <- unname(min(deficiency$estimates))
+      subset_estimates <- deficiency$estimates[candidate_methods]
+      delta_method <- names(which.min(subset_estimates))
+      delta <- unname(min(subset_estimates))
     }
   } else {
     checkmate::assert_number(deficiency, lower = 0, upper = 1)
@@ -133,7 +170,9 @@ policy_regret_bound <- function(deficiency, utility_range = c(0, 1),
     policy_class = policy_class,
     all_estimates = all_estimates,
     delta_mode = delta_mode,
-    delta_method = delta_method
+    delta_method = delta_method,
+    delta_selection = delta_selection,
+    delta_is_proxy = delta_is_proxy
   )
   
   .msg_info(paste0("Transfer penalty: ", round(transfer_penalty, 4), 

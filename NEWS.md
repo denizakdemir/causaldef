@@ -14,19 +14,20 @@
   effect estimation using Generalized Random Forests.
   
 * **Cox IPTW for Survival**: Added `method = "cox_iptw"` for survival outcomes, 
-  implementing stabilized inverse probability weighted Cox models.
+  implementing stabilized inverse probability weighted Cox models on
+  compatible survival runtimes.
 
 ### New Identification Methods
 
 * **Front-Door Kernel** (`frontdoor_effect()`): Implements the front-door kernel existence result (`thm:frontdoor`) with 
-  plugin and doubly-robust estimators for front-door identification.
+  a plugin estimator and a heuristic front-door deficiency proxy.
   
 * **Transport Deficiency** (`transport_deficiency()`): Measures distribution 
-  shift between source and target populations with IPTW and calibration methods.
+  shift between source and target populations with proxy diagnostics.
 
-* **Instrumental Variables** (`iv_effect()`): Full IV support with 2SLS, Wald,
-  and LIML estimators. Includes weak instrument diagnostics and validity tests
-  via `test_instrument()`.
+* **Instrumental Variables** (`iv_effect()`): IV support with 2SLS and Wald
+  estimators, plus weak instrument diagnostics and validity tests via
+  `test_instrument()`.
 
 ### New Outcome Types
 
@@ -75,6 +76,15 @@
 
 * Fixed weight normalization in `matching` method
 * Improved fallback handling when optional packages fail
+* Clarified package semantics so theorem-backed bounds, computable proxies,
+  sensitivity diagnostics, and heuristic modules are labeled distinctly
+* Disabled unsupported `frontdoor(method = "dr")` and `iv_effect(method = "liml")`
+* Reworked `nc_diagnostic()` into permutation-based screening plus
+  `kappa`-sensitivity bounds
+* Added explicit survival runtime guards for older R versions where
+  `survival` internals require `base::deparse1`
+* Made `policy_regret_bound()` method selection explicit and recorded
+  optimistic post-selection when used
 
 ---
 

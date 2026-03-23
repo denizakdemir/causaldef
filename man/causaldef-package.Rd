@@ -6,7 +6,42 @@
 \alias{causaldef-package}
 \title{causaldef: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency}
 \description{
-Implements Le Cam deficiency theory for causal inference, as described in Akdemir (2026) \doi{10.5281/zenodo.18367347}. Provides quantitative bounds on information loss from confounding, selection bias, and distributional shift. Supports continuous, binary, count, survival, and competing risks outcomes. Key features include deficiency estimation, negative control diagnostics, policy regret bounds, and sensitivity analysis via confounding frontiers.
+Theory-forward causal diagnostics organized around Le Cam deficiency.
+}
+\details{
+The package centers causal inference around the question: how much information
+separates the observational study at hand from the interventional experiment we
+would ideally like to run?
+
+\strong{Scientific contract}
+
+The package exposes four kinds of quantities:
+\itemize{
+\item \strong{Theorem-backed utilities}: closed-form or theorem-aligned bounds such
+as \code{\link[=policy_regret_bound]{policy_regret_bound()}}, \code{\link[=policy_regret_bound_vc]{policy_regret_bound_vc()}}, \code{\link[=confounding_frontier]{confounding_frontier()}},
+\code{\link[=sharp_lower_bound]{sharp_lower_bound()}}, and \code{\link[=wasserstein_deficiency_gaussian]{wasserstein_deficiency_gaussian()}}.
+\item \strong{Computable deficiency proxies}: \code{\link[=estimate_deficiency]{estimate_deficiency()}} currently returns
+a propensity-score total-variation proxy (\code{metric = "ps_tv"}), not a generic
+nonparametric estimator of the exact Le Cam deficiency.
+\item \strong{Sensitivity diagnostics}: functions such as \code{\link[=nc_diagnostic]{nc_diagnostic()}} combine
+observable diagnostics with user-supplied sensitivity parameters.
+\item \strong{Experimental heuristics}: some modules currently expose effect estimates
+together with heuristic risk scores or proxy summaries. These should be read as
+diagnostics unless the individual help page states a theorem-backed identification
+result.
+}
+
+\strong{Recommended workflow}
+
+\enumerate{
+\item Specify the causal problem with \code{\link[=causal_spec]{causal_spec()}} or a survival variant.
+\item Compute a pre-specified diagnostic or proxy with \code{\link[=estimate_deficiency]{estimate_deficiency()}} or
+a specialized module.
+\item Stress-test assumptions with sensitivity tools such as \code{\link[=nc_diagnostic]{nc_diagnostic()}} or
+\code{\link[=confounding_frontier]{confounding_frontier()}}.
+\item Translate the resulting information gap into decision consequences with
+\code{\link[=policy_regret_bound]{policy_regret_bound()}}.
+}
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison: A Framework for Identification, Transportability, and Policy Learning. DOI: 10.5281/zenodo.18367347
@@ -25,4 +60,3 @@ Useful links:
 \strong{Maintainer}: Deniz Akdemir \email{deniz.akdemir.work@gmail.com}
 
 }
-\keyword{internal}

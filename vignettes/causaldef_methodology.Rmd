@@ -8,7 +8,7 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-eval_surv <- getRversion() >= "4.0.0"
+eval_surv <- getRversion() >= "4.0.0" && requireNamespace("survival", quietly = TRUE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -34,7 +34,6 @@ Before we dive into the math, here is where we are going. This is the **Safety F
 ```{r flash_forward, echo=FALSE, results='hide', fig.width=6, fig.height=4}
 library(causaldef)
 library(ggplot2)
-library(survival)
 
 set.seed(2026)
 n <- 500
@@ -59,7 +58,7 @@ results <- estimate_deficiency(
   n_boot = 50
 )
 
-bounds <- policy_regret_bound(results, utility_range = c(0, 10))
+bounds <- policy_regret_bound(results, utility_range = c(0, 10), method = "aipw")
 plot(bounds, type = "safety_curve")
 ```
 
@@ -114,7 +113,6 @@ We will demonstrate the package workflow using a simulated medical decision prob
 ```{r setup}
 library(causaldef)
 library(ggplot2)
-library(survival)
 
 set.seed(2026)
 
@@ -260,7 +258,7 @@ Where:
 
 ```{r regret}
 # Utility range: [0, 10] outcome units
-bounds <- policy_regret_bound(results, utility_range = c(0, 10))
+bounds <- policy_regret_bound(results, utility_range = c(0, 10), method = "aipw")
 print(bounds)
 plot(bounds, type = "safety_curve")
 ```
@@ -307,7 +305,10 @@ The contour line represents the border of an acceptable **transfer penalty**.
 
 # Advanced: Survival Analysis
 
-`causaldef` fully supports survival outcomes, where the goal is to recover the interventional survival curve.
+`causaldef` supports survival specifications and proxy-based diagnostics for time-to-event settings, with effect estimation available on compatible survival runtimes.
+
+The survival examples below are evaluated only when a compatible `survival`
+runtime is available. In the current support matrix, that means `R >= 4.0`.
 
 ```{r survival, eval = eval_surv}
 data("hct_outcomes")

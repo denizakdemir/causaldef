@@ -24,26 +24,27 @@ defaults to 1 (conservative).}
 \item{kappa_range}{Numeric vector: range of kappa values for sensitivity analysis.
 If provided, returns bounds for each kappa and adds class "nc_diagnostic_sensitivity".}
 
-\item{alpha}{Numeric: significance level for falsification test}
+\item{alpha}{Numeric: significance level for the screening test}
 
-\item{n_boot}{Integer: bootstrap iterations}
+\item{n_boot}{Integer: number of permutation draws used for the screening test}
 }
 \value{
 Object of class "nc_diagnostic" containing:
 \itemize{
-\item delta_nc: Negative control deficiency (observable)
+\item delta_nc: Observable residual-association proxy based on a weighted
+treatment/negative-control association
 \item delta_bound: Upper bound on true deficiency (kappa * delta_nc)
 \item falsified: Logical indicating if assumptions are falsified
-\item p_value: P-value for falsification test
+\item p_value: Permutation p-value for the observed residual association
 \item kappa: Alignment constant used
+\item screening: List with the observed association statistic, permutation
+p-value, and null standard deviation
 \item sensitivity: (if kappa_range provided) data.frame with bounds for each kappa
 }
 }
 \description{
-Tests causal assumptions using negative control outcomes. If the
-adjustment strategy correctly removes confounding, it should also
-remove the spurious association with a negative control outcome
-(one that shares confounders but is unaffected by treatment).
+Screens for residual association with a negative control outcome and computes
+the corresponding \eqn{\kappa}-based sensitivity bound.
 }
 \details{
 The diagnostic uses the bound: \eqn{\delta(\hat{K}) \le \kappa \cdot \delta_{NC}(\hat{K})}, where \eqn{\delta_{NC}}
@@ -58,6 +59,17 @@ A negative control outcome Y' is a variable that:
 If adjustment correctly removes confounding, the residual association
 between A and Y' should be zero. Non-zero association indicates
 confounding remains.
+
+The current implementation separates two tasks:
+\enumerate{
+\item a \strong{screening test} based on a weighted correlation statistic and a
+permutation null distribution, and
+\item a \strong{sensitivity bound} of the form \eqn{\delta \le \kappa \delta_{NC}}
+based on the observed residual-association proxy \code{delta_nc}.
+}
+
+This keeps the observable screening step distinct from the theorem's
+user-supplied alignment parameter \code{kappa}.
 
 When kappa is unknown, use kappa_range to perform sensitivity analysis
 across plausible values. The resulting plot shows how the deficiency

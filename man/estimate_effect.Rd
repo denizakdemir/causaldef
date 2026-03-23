@@ -44,7 +44,13 @@ Uses the fitted causal kernels (from \code{estimate_deficiency}) to estimate
 the causal effect (ATE, RMST, etc.).
 }
 \examples{
-\dontrun{
+\donttest{
+set.seed(42)
+n <- 200
+W <- rnorm(n)
+A <- rbinom(n, 1, plogis(0.5 * W))
+Y <- 1 + 2 * A + W + rnorm(n)
+df <- data.frame(W = W, A = A, Y = Y)
 spec <- causal_spec(df, "A", "Y", "W")
 def <- estimate_deficiency(spec, methods = "iptw")
 effect <- estimate_effect(def)

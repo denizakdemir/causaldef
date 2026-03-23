@@ -4,10 +4,8 @@
 
 #' Negative Control Diagnostic
 #'
-#' Tests causal assumptions using negative control outcomes. If the
-#' adjustment strategy correctly removes confounding, it should also
-#' remove the spurious association with a negative control outcome
-#' (one that shares confounders but is unaffected by treatment).
+#' Screens for residual association with a negative control outcome and computes
+#' the corresponding \eqn{\kappa}-based sensitivity bound.
 #'
 #' The diagnostic uses the bound: \eqn{\delta(\hat{K}) \le \kappa \cdot \delta_{NC}(\hat{K})}, where \eqn{\delta_{NC}}
 #' is the negative control deficiency.
@@ -18,16 +16,19 @@
 #'   defaults to 1 (conservative).
 #' @param kappa_range Numeric vector: range of kappa values for sensitivity analysis.
 #'   If provided, returns bounds for each kappa and adds class "nc_diagnostic_sensitivity".
-#' @param alpha Numeric: significance level for falsification test
-#' @param n_boot Integer: bootstrap iterations
+#' @param alpha Numeric: significance level for the screening test
+#' @param n_boot Integer: number of permutation draws used for the screening test
 #'
 #' @return Object of class "nc_diagnostic" containing:
 #'   \itemize{
-#'     \item delta_nc: Negative control deficiency (observable)
+#'     \item delta_nc: Observable residual-association proxy based on a weighted
+#'     treatment/negative-control association
 #'     \item delta_bound: Upper bound on true deficiency (kappa * delta_nc)
 #'     \item falsified: Logical indicating if assumptions are falsified
-#'     \item p_value: P-value for falsification test
+#'     \item p_value: Permutation p-value for the observed residual association
 #'     \item kappa: Alignment constant used
+#'     \item screening: List with the observed association statistic, permutation
+#'     p-value, and null standard deviation
 #'     \item sensitivity: (if kappa_range provided) data.frame with bounds for each kappa
 #'   }
 #'
@@ -41,6 +42,17 @@
 #' If adjustment correctly removes confounding, the residual association
 #' between A and Y' should be zero. Non-zero association indicates
 #' confounding remains.
+#'
+#' The current implementation separates two tasks:
+#' \enumerate{
+#'   \item a \strong{screening test} based on a weighted correlation statistic and a
+#'   permutation null distribution, and
+#'   \item a \strong{sensitivity bound} of the form \eqn{\delta \le \kappa \delta_{NC}}
+#'   based on the observed residual-association proxy `delta_nc`.
+#' }
+#'
+#' This keeps the observable screening step distinct from the theorem's
+#' user-supplied alignment parameter `kappa`.
 #' 
 #' When kappa is unknown, use kappa_range to perform sensitivity analysis
 #' across plausible values. The resulting plot shows how the deficiency
@@ -115,8 +127,8 @@ nc_diagnostic <- function(spec, method = "iptw", kappa = NULL,
   }
   kernel <- .build_kernel(spec, method, treatment_value = treatment_value)
   
-  # Compute NC deficiency (test for residual A-Y' association)
-  nc_result <- .test_negative_control(spec, kernel, n_boot)
+  # Screening test for residual A-Y' association
+  nc_result <- .screen_negative_control(spec, kernel, n_boot)
   
   # Apply negative-control bound: delta <= kappa * delta_nc
   delta_bound <- kappa * nc_result$delta_nc
@@ -131,8 +143,15 @@ nc_diagnostic <- function(spec, method = "iptw", kappa = NULL,
     p_value = nc_result$p_value,
     kappa = kappa,
     kernel = kernel,
+    screening = list(
+      statistic = nc_result$statistic,
+      p_value = nc_result$p_value,
+      null_sd = nc_result$null_sd,
+      method = "weighted_permutation_correlation"
+    ),
     test_statistic = nc_result$statistic,
-    se = nc_result$se
+    se = nc_result$null_sd,
+    p_value_method = "permutation"
   )
   
   # Sensitivity analysis if kappa_range provided
@@ -160,17 +179,23 @@ nc_diagnostic <- function(spec, method = "iptw", kappa = NULL,
 }
 
 # =============================================================================
-# Internal: Negative Control Test
+# Internal: Negative Control Screening Test
 # =============================================================================
 
 #' @keywords internal
-.test_negative_control <- function(spec, kernel, n_boot) {
+.screen_negative_control <- function(spec, kernel, n_boot) {
   
   data <- spec$data
   A <- data[[spec$treatment]]
-  if (!is.numeric(A)) A <- as.numeric(A)
+  if (is.factor(A) || is.character(A)) {
+    A <- as.numeric(as.factor(A)) - 1
+  } else if (is.logical(A)) {
+    A <- as.integer(A)
+  } else if (!is.numeric(A)) {
+    A <- as.numeric(A)
+  }
   Y_nc <- data[[spec$negative_control]]
-  if (!is.numeric(Y_nc)) Y_nc <- as.numeric(Y_nc)
+  if (!is.numeric(Y_nc)) Y_nc <- as.numeric(as.factor(Y_nc))
   n <- nrow(data)
   
   # Get weights from kernel
@@ -181,9 +206,7 @@ nc_diagnostic <- function(spec, method = "iptw", kappa = NULL,
   }
   
   # Test statistic: weighted correlation between A and Y_nc
-  # Under null (correct adjustment), this should be ~0
   compute_nc_association <- function(A, Y_nc, weights) {
-    # Weighted correlation as test statistic
     w_sum <- sum(weights)
     if (!is.finite(w_sum) || w_sum <= 0) return(0)
     A_wtd <- sum(weights * A) / w_sum
@@ -201,30 +224,22 @@ nc_diagnostic <- function(spec, method = "iptw", kappa = NULL,
   # Point estimate
   stat_obs <- compute_nc_association(A, Y_nc, weights)
   
-  # Bootstrap for inference
-  boot_stats <- replicate(n_boot, {
-    boot_idx <- sample(n, replace = TRUE)
-    compute_nc_association(A[boot_idx], Y_nc[boot_idx], weights[boot_idx])
+  # Permutation null distribution for residual association
+  perm_stats <- replicate(n_boot, {
+    perm_idx <- sample.int(n)
+    compute_nc_association(A, Y_nc[perm_idx], weights)
   })
   
-  se <- sd(boot_stats)
-  
-  # Two-sided p-value (null: association = 0)
-  if (!is.finite(se) || se <= 0) {
-    p_value <- if (abs(stat_obs) < 1e-12) 1 else 0
-  } else {
-    z_stat <- abs(stat_obs) / se
-    p_value <- 2 * (1 - pnorm(z_stat))
-  }
+  null_sd <- sd(perm_stats)
+  p_value <- (1 + sum(abs(perm_stats) >= abs(stat_obs))) / (n_boot + 1)
   
   # Convert correlation to deficiency-like measure [0, 1]
-  # Using Fisher's z or just absolute correlation
   delta_nc <- min(1, abs(stat_obs))
   
   list(
     delta_nc = delta_nc,
     statistic = stat_obs,
-    se = se,
+    null_sd = null_sd,
     p_value = p_value
   )
 }

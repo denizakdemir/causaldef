@@ -3,18 +3,20 @@ Type: Package
 Title: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency
 Version: 0.2.0
 Authors@R: 
-    person("Deniz", "Akdemir", 
-           email = "deniz.akdemir.work@gmail.com",
-           role = c("aut", "cre"))
+    person(given = "Deniz",
+           family = "Akdemir",
+           role = c("aut", "cre"),
+           email = "deniz.akdemir.work@gmail.com")
 Author: Deniz Akdemir [aut, cre]
 Maintainer: Deniz Akdemir <deniz.akdemir.work@gmail.com>
 Description: Implements Le Cam deficiency theory for causal inference,
     as described in Akdemir (2026) <doi:10.5281/zenodo.18367347>. Provides
-    quantitative bounds on information loss from confounding, selection bias,
-    and distributional shift. Supports continuous, binary, count, survival,
-    and competing risks outcomes. Key features include deficiency estimation,
-    negative control diagnostics, policy regret bounds, and sensitivity
-    analysis via confounding frontiers.
+    theorem-backed bounds together with computable proxy diagnostics for
+    information loss from confounding, selection bias, and distributional
+    shift. Supports continuous, binary, count, survival, and competing risks
+    outcomes. Key features include propensity-score total-variation deficiency
+    proxies, negative control diagnostics, policy regret bounds, and
+    sensitivity analysis via confounding frontiers.
 License: MIT + file LICENSE
 URL: https://github.com/denizakdemir/causaldef
 BugReports: https://github.com/denizakdemir/causaldef/issues
@@ -31,22 +33,21 @@ Imports:
     stats,
     graphics
 Suggests:
-    survival (>= 3.1.8),
-    MatchIt (>= 4.5.0),
-    tmle (>= 2.0.0),
-    SuperLearner (>= 2.0.28),
-    grf (>= 2.3.0),
-    future.apply (>= 1.10.0),
-    shiny (>= 1.7.0),
-    plumber (>= 1.2.0),
-    jsonlite (>= 1.8.0),
-    cmprsk (>= 2.2.0),
+    survival,
+    MatchIt,
+    tmle,
+    SuperLearner,
+    grf,
+    future.apply,
+    glue,
+    shiny,
+    plumber,
+    jsonlite,
+    cmprsk,
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown,
-    roxygen2,
-    usethis,
-    pkgdown
+    rmarkdown
 Config/testthat/edition: 2
+Config/Needs/website: pkgdown
 VignetteBuilder: knitr
 Language: en-US

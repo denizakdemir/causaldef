@@ -20,7 +20,8 @@ frontdoor_effect(
 \item{method}{Character: estimation method for the front-door formula
 \itemize{
 \item "plugin": Simple plug-in estimator
-\item "dr": Doubly robust front-door estimator
+\item "dr": Reserved for a future doubly robust front-door estimator.
+The current release errors if requested.
 }}
 
 \item{n_boot}{Integer: bootstrap replicates for standard errors (default 200)}
@@ -33,7 +34,9 @@ Object of class "frontdoor_effect" containing:
 \item estimate: The front-door causal effect
 \item se: Standard error (if bootstrap > 0)
 \item ci: Confidence interval
-\item deficiency: Estimated deficiency (should be ~0 if assumptions hold)
+\item deficiency_proxy: Heuristic proxy based on disagreement between the
+naive and front-door effect estimates
+\item deficiency: Backward-compatible alias of \code{deficiency_proxy}
 }
 }
 \description{
@@ -54,6 +57,10 @@ The front-door formula is:
 
 When these assumptions hold, the manuscript's Front-Door Kernel Existence theorem
 (\code{thm:frontdoor}) implies \eqn{\delta = 0}.
+
+The current implementation estimates the front-door effect, but the reported
+\code{deficiency_proxy} is \emph{not} an estimator of the exact Le Cam deficiency.
+It is a heuristic discrepancy score meant for exploratory diagnostics.
 }
 \examples{
 # Simulate front-door scenario
@@ -65,7 +72,7 @@ Y <- 1 + 0.8 * M + 0.5 * U + rnorm(n)    # Outcome
 df <- data.frame(A = A, M = M, Y = Y)
 
 spec <- causal_spec(df, "A", "Y", covariates = NULL)
-\dontrun{
+\donttest{
 fd_result <- frontdoor_effect(spec, mediator = "M")
 print(fd_result)
 }

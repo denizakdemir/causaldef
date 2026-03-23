@@ -20,10 +20,10 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-This vignette demonstrates how to use **negative control outcomes** to test 
-causal assumptions using the `causaldef` package. Negative controls provide 
-an empirical diagnostic for whether your adjustment strategy successfully 
-removes confounding.
+This vignette demonstrates how to use **negative control outcomes** to screen
+for residual confounding and compute a corresponding sensitivity bound using
+the `causaldef` package. Negative controls provide an empirical diagnostic for
+whether your adjustment strategy may have failed to remove confounding.
 
 ## Theoretical Background
 
@@ -48,13 +48,16 @@ this indicates that **confounding remains** and your causal estimates may be bia
 
 ### Negative Control Sensitivity Bound (manuscript `thm:nc_bound`)
 
-The `causaldef` package implements the bound from the manuscript's negative control sensitivity bound (`thm:nc_bound`):
+The `causaldef` package combines two ingredients:
+
+1. a screening test for residual association between treatment and the negative control after adjustment, and
+2. the manuscript's negative control sensitivity bound (`thm:nc_bound`):
 
 $$\delta(\hat{K}) \leq \kappa \cdot \delta_{NC}(\hat{K})$$
 
 where:
 - $\delta(\hat{K})$ is the true deficiency (what we want to know)
-- $\delta_{NC}(\hat{K})$ is the negative control deficiency (what we can measure)
+- $\delta_{NC}(\hat{K})$ is a negative-control association proxy (what we can measure)
 - $\kappa$ is an alignment constant reflecting how well $Y'$ proxies for $Y$'s confounding
 
 ## Practical Example
@@ -131,11 +134,11 @@ print(nc_result)
 
 The diagnostic returns:
 
-- **`delta_nc`**: The observed negative control deficiency (correlation 
-  between $A$ and $Y'$ after adjustment)
+- **`screening$statistic`**: Weighted residual association between $A$ and $Y'$ after adjustment
+- **`p_value`**: Permutation p-value for that residual association
+- **`delta_nc`**: The observed negative-control association proxy
 - **`delta_bound`**: Upper bound on true deficiency ($\kappa \times \delta_{NC}$)
-- **`falsified`**: Whether assumptions are statistically rejected
-- **`p_value`**: P-value for the falsification test
+- **`falsified`**: Whether the residual-association screening test rejects
 
 ### Scenarios
 
@@ -217,7 +220,8 @@ nc_check <- nc_diagnostic(spec, method = best_method, n_boot = 100)
 if (!nc_check$falsified) {
   bounds <- policy_regret_bound(
     def_results,
-    utility_range = c(-5, 10)
+    utility_range = c(-5, 10),
+    method = best_method
   )
   print(bounds)
 } else {
@@ -246,10 +250,10 @@ print(nc_tight)
 
 | Function | Purpose |
 |----------|---------|
-| `nc_diagnostic()` | Test causal assumptions via negative control |
-| `delta_nc` | Observable negative control deficiency |
+| `nc_diagnostic()` | Screen for residual association and compute a sensitivity bound |
+| `delta_nc` | Observable negative-control association proxy |
 | `delta_bound` | Upper bound on true deficiency |
-| `falsified` | Statistical rejection of assumptions |
+| `falsified` | Screening rejection of residual association |
 
 Negative control diagnostics provide a **data-driven** way to assess causal 
 assumptions. Use them alongside deficiency estimation for robust causal inference.

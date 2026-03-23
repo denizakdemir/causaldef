@@ -25,7 +25,7 @@ estimate_deficiency(
 \item "tmle": Targeted maximum likelihood estimation (requires tmle package)
 \item "matching": Propensity score matching (requires MatchIt package)
 \item "grf": Generalized random forests (requires grf package)
-\item "cox_iptw": Cox model with IPTW (survival outcomes, requires survival)
+\item "cox_iptw": Cox model with IPTW (survival outcomes, requires survival and a compatible R runtime)
 }}
 
 \item{treatment_value}{Numeric: intervention value for do(A=a)}

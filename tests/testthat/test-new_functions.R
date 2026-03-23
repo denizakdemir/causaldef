@@ -22,6 +22,7 @@ test_that("frontdoor_effect returns correct class", {
   
   expect_s3_class(result, "frontdoor_effect")
   expect_true("estimate" %in% names(result))
+  expect_true("deficiency_proxy" %in% names(result))
   expect_true("deficiency" %in% names(result))
   expect_true(is.numeric(result$estimate))
 })
@@ -56,6 +57,22 @@ test_that("print.frontdoor_effect works", {
   expect_output(print(result), "Effect estimate")
 })
 
+test_that("frontdoor_effect rejects unavailable dr method", {
+  set.seed(42)
+  n <- 100
+  A <- rbinom(n, 1, 0.5)
+  M <- A + rnorm(n)
+  Y <- M + rnorm(n)
+
+  df <- data.frame(A = A, M = M, Y = Y)
+  spec <- causal_spec(df, "A", "Y", covariates = NULL)
+
+  expect_error(
+    frontdoor_effect(spec, mediator = "M", method = "dr", n_boot = 0),
+    "not available"
+  )
+})
+
 # =============================================================================
 # Transport Deficiency Tests
 # =============================================================================
@@ -85,6 +102,7 @@ test_that("transport_deficiency returns correct class", {
   )
   
   expect_s3_class(result, "transport_deficiency")
+  expect_true("delta_transport_proxy" %in% names(result))
   expect_true("delta_transport" %in% names(result))
   expect_true("ate_source" %in% names(result))
   expect_true("ate_target" %in% names(result))
@@ -126,7 +144,7 @@ test_that("print.transport_deficiency works", {
   spec <- causal_spec(source_df, "A", "Y", "age")
   result <- transport_deficiency(spec, target_df, n_boot = 0)
   
-  expect_output(print(result), "delta_transport")
+  expect_output(print(result), "transport proxy")
 })
 
 # =============================================================================
@@ -191,6 +209,7 @@ test_that("causal_spec_competing maps factor events and accepts label event_of_i
 
 test_that("estimate_deficiency_competing returns deficiency object", {
   skip_if_not_installed("survival")
+  skip_if(getRversion() < "4.0", "Survival runtime requires R >= 4.0 for competing-risks estimation")
   
   set.seed(42)
   n <- 200
@@ -236,6 +255,7 @@ test_that("iv_effect returns correct class", {
   expect_true("estimate" %in% names(result))
   expect_true("f_stat" %in% names(result))
   expect_true("weak_iv" %in% names(result))
+  expect_true("deficiency_proxy" %in% names(result))
   expect_true("deficiency" %in% names(result))
 })
 
@@ -277,6 +297,22 @@ test_that("iv_effect detects weak instruments", {
   # Should detect weak instrument
   expect_true(result$weak_iv || result$f_stat < 15)
   expect_true(result$deficiency > 0.3)
+})
+
+test_that("iv_effect rejects unavailable liml method", {
+  set.seed(42)
+  n <- 200
+  Z <- rbinom(n, 1, 0.5)
+  A <- as.numeric(0.4 * Z + rnorm(n) > 0)
+  Y <- 1 + 2 * A + rnorm(n)
+
+  df <- data.frame(Z = Z, A = A, Y = Y)
+  spec <- causal_spec(df, "A", "Y", instrument = "Z")
+
+  expect_error(
+    iv_effect(spec, method = "liml", n_boot = 0),
+    "not available"
+  )
 })
 
 test_that("test_instrument provides diagnostic output", {

@@ -10,6 +10,8 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
+eval_surv <- getRversion() >= "4.0.0" && requireNamespace("survival", quietly = TRUE)
+
 knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>",
@@ -244,7 +246,10 @@ based on patient status, making naive comparisons biased.
 
 ### 2.2 Step 1: Survival Specification
 
-```{r spec-hct}
+Executable survival-effect code in this section requires a compatible
+`survival` runtime. In the current support matrix, that means `R >= 4.0`.
+
+```{r spec-hct, eval = eval_surv}
 # Create binary event indicator
 hct_outcomes$event <- ifelse(hct_outcomes$event_status != "Censored", 1, 0)
 
@@ -263,7 +268,7 @@ print(spec_hct)
 
 ### 2.3 Step 2: Deficiency Estimation
 
-```{r estim-hct}
+```{r estim-hct, eval = eval_surv}
 deficiency_hct <- estimate_deficiency(
     spec_hct,
     methods = c("unadjusted", "iptw"),
@@ -286,7 +291,7 @@ what an RCT would provide:
 Beyond point estimates, we can map a *sensitivity analysis* showing how 
 deficiency varies with hypothetical unmeasured confounding:
 
-```{r frontier-hct, fig.height=5}
+```{r frontier-hct, fig.height=5, eval = eval_surv}
 frontier <- confounding_frontier(
     spec_hct,
     alpha_range = c(-2, 2), # Confounding path: U → Treatment
@@ -309,7 +314,7 @@ benchmarks) to substantially increase δ, conclusions are robust.
 
 ### 2.5 Step 4: Policy Regret and RMST Effect
 
-```{r policy-hct}
+```{r policy-hct, eval = eval_surv}
 # Utility = months of survival (horizon = 24)
 bounds_hct <- policy_regret_bound(
     deficiency_hct,
@@ -329,7 +334,7 @@ This means even with perfect decision-making, the observational evidence
 can inflate regret by up to about 1.2 months on the 0--24 month utility scale, and
 there is an unavoidable worst-case floor of about 0.6 months when $\delta>0$.
 
-```{r effect-hct}
+```{r effect-hct, eval = eval_surv}
 # Estimate RMST difference
 effect_hct <- estimate_effect(
     deficiency_hct,
@@ -342,7 +347,7 @@ print(effect_hct)
 
 ### 2.6 Complete Decision Framework
 
-```{r decision-hct, results='asis'}
+```{r decision-hct, results='asis', eval = eval_surv}
 delta_iptw <- deficiency_hct$estimates["iptw"]
 transfer_penalty <- bounds_hct$transfer_penalty
 minimax_floor <- bounds_hct$minimax_floor

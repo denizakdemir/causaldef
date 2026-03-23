@@ -80,3 +80,24 @@ utils::globalVariables(c("alpha", "delta", "estimate", "lower", "upper",
   }
   invisible(NULL)
 }
+
+.survival_runtime_supported <- function() {
+  getRversion() >= "4.0.0" &&
+    exists("deparse1", envir = baseenv(), inherits = FALSE)
+}
+
+.require_survival_runtime <- function(feature = "Survival estimation") {
+  if (!requireNamespace("survival", quietly = TRUE)) {
+    .msg_error(paste0("Package 'survival' needed for ", feature, "."))
+  }
+
+  if (!.survival_runtime_supported()) {
+    .msg_error(paste0(
+      feature,
+      " requires R >= 4.0 or a survival installation compatible with base::deparse1. ",
+      "Current runtime: R ", getRversion(), "."
+    ))
+  }
+
+  invisible(TRUE)
+}

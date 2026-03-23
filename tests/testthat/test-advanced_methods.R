@@ -140,6 +140,7 @@ test_that("grf is rejected for survival outcomes", {
 
 test_that("cox_iptw method works for survival outcomes", {
   skip_if_not_installed_quiet("survival")
+  skip_if(getRversion() < "4.0", "Survival runtime requires R >= 4.0 for cox_iptw")
   
   df <- .make_test_survival_df(n = 300)
   spec <- causal_spec_survival(df, "A", "time", "event", "W")
@@ -154,6 +155,7 @@ test_that("cox_iptw method works for survival outcomes", {
 
 test_that("cox_iptw kernel contains hazard ratio", {
   skip_if_not_installed_quiet("survival")
+  skip_if(getRversion() < "4.0", "Survival runtime requires R >= 4.0 for cox_iptw")
   
   df <- .make_test_survival_df(n = 300)
   spec <- causal_spec_survival(df, "A", "time", "event", "W")
@@ -171,6 +173,19 @@ test_that("cox_iptw is rejected for non-survival outcomes", {
   expect_error(
     estimate_deficiency(spec, methods = "cox_iptw"),
     regexp = "survival|cox"
+  )
+})
+
+test_that("cox_iptw errors clearly on unsupported survival runtimes", {
+  skip_if_not_installed_quiet("survival")
+  skip_if(getRversion() >= "4.0", "Guard is only relevant on older R runtimes")
+
+  df <- .make_test_survival_df(n = 100)
+  spec <- causal_spec_survival(df, "A", "time", "event", "W")
+
+  expect_error(
+    estimate_deficiency(spec, methods = "cox_iptw", n_boot = 0),
+    regexp = "R >= 4.0|deparse1|compatible"
   )
 })
 
@@ -233,5 +248,4 @@ test_that("advanced methods can be compared together", {
   expect_true(all(result$estimates >= 0))
   expect_true(all(result$estimates <= 1))
 })
-
 

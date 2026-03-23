@@ -12,7 +12,8 @@
 #' @param method Character: estimation method for the front-door formula
 #'   \itemize{
 #'     \item "plugin": Simple plug-in estimator
-#'     \item "dr": Doubly robust front-door estimator
+#'     \item "dr": Reserved for a future doubly robust front-door estimator.
+#'     The current release errors if requested.
 #'   }
 #' @param n_boot Integer: bootstrap replicates for standard errors (default 200)
 #' @param ci_level Numeric: confidence level (default 0.95)
@@ -22,7 +23,9 @@
 #'     \item estimate: The front-door causal effect
 #'     \item se: Standard error (if bootstrap > 0)
 #'     \item ci: Confidence interval
-#'     \item deficiency: Estimated deficiency (should be ~0 if assumptions hold)
+#'     \item deficiency_proxy: Heuristic proxy based on disagreement between the
+#'     naive and front-door effect estimates
+#'     \item deficiency: Backward-compatible alias of `deficiency_proxy`
 #'   }
 #'
 #' @details
@@ -40,6 +43,10 @@
 #' When these assumptions hold, the manuscript's Front-Door Kernel Existence theorem
 #' (`thm:frontdoor`) implies \eqn{\delta = 0}.
 #'
+#' The current implementation estimates the front-door effect, but the reported
+#' `deficiency_proxy` is \emph{not} an estimator of the exact Le Cam deficiency.
+#' It is a heuristic discrepancy score meant for exploratory diagnostics.
+#'
 #' @examples
 #' # Simulate front-door scenario
 #' n <- 500
@@ -50,7 +57,7 @@
 #' df <- data.frame(A = A, M = M, Y = Y)
 #' 
 #' spec <- causal_spec(df, "A", "Y", covariates = NULL)
-#' \dontrun{
+#' \donttest{
 #' fd_result <- frontdoor_effect(spec, mediator = "M")
 #' print(fd_result)
 #' }
@@ -66,6 +73,14 @@ frontdoor_effect <- function(spec, mediator, method = c("plugin", "dr"),
                              n_boot = 200, ci_level = 0.95) {
   
   method <- match.arg(method)
+
+  if (identical(method, "dr")) {
+    cli::cli_abort(c(
+      "Method {.val dr} is not available in this release.",
+      "x" = "The previous implementation was not a valid doubly robust front-door estimator.",
+      "i" = "Use {.val plugin} for the current front-door effect estimator."
+    ))
+  }
   
   # Validation
   if (!inherits(spec, "causal_spec")) {
@@ -106,14 +121,15 @@ frontdoor_effect <- function(spec, mediator, method = c("plugin", "dr"),
   }
   
   # Compute residual deficiency (should be ~0 if front-door holds)
-  deficiency <- .compute_frontdoor_deficiency(A, M, Y)
+  deficiency_proxy <- .compute_frontdoor_deficiency(A, M, Y)
   
   result <- structure(
     list(
       estimate = estimate,
       se = se,
       ci = ci,
-      deficiency = deficiency,
+      deficiency_proxy = deficiency_proxy,
+      deficiency = deficiency_proxy,
       method = method,
       mediator = mediator,
       n = n
@@ -122,12 +138,12 @@ frontdoor_effect <- function(spec, mediator, method = c("plugin", "dr"),
   )
   
   # Report
-  delta_str <- sprintf("%.3f", deficiency)
-  if (deficiency < 0.05) {
-    cli::cli_alert_success("Front-door effect: {round(estimate, 3)} (delta = {delta_str} ~ 0)")
+  delta_str <- sprintf("%.3f", deficiency_proxy)
+  if (deficiency_proxy < 0.05) {
+    cli::cli_alert_success("Front-door effect: {round(estimate, 3)} (proxy = {delta_str} ~ 0)")
   } else {
-    cli::cli_alert_warning("Front-door effect: {round(estimate, 3)} (delta = {delta_str} > 0.05)")
-    cli::cli_alert_info("Consider checking front-door assumptions")
+    cli::cli_alert_warning("Front-door effect: {round(estimate, 3)} (proxy = {delta_str} > 0.05)")
+    cli::cli_alert_info("This proxy is heuristic; use it only as an exploratory diagnostic.")
   }
   
   result
@@ -251,13 +267,13 @@ print.frontdoor_effect <- function(x, ...) {
     cat(sprintf("  95%% CI:         [%.4f, %.4f]\n", x$ci[1], x$ci[2]))
   }
   
-  cat(sprintf("  Deficiency (delta):  %.4f\n", x$deficiency))
+  cat(sprintf("  Heuristic proxy: %.4f\n", x$deficiency_proxy))
   
   cat("\n")
-  if (x$deficiency < 0.05) {
-    cli::cli_alert_success("Front-door assumptions appear satisfied (delta < 0.05)")
+  if (x$deficiency_proxy < 0.05) {
+    cli::cli_alert_success("Naive and front-door estimates are close under the current proxy.")
   } else {
-    cli::cli_alert_warning("Elevated deficiency suggests assumption violations")
+    cli::cli_alert_warning("The proxy flags a discrepancy, but it is not an exact deficiency estimate.")
   }
   
   invisible(x)

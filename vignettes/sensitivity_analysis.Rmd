@@ -126,7 +126,7 @@ plot(frontier)
 ### Policy Regret Bound
 
 ```{r policy-bound}
-bounds <- policy_regret_bound(def_results, utility_range = c(0, 10))
+bounds <- policy_regret_bound(def_results, utility_range = c(0, 10), method = "iptw")
 print(bounds)
 ```
 

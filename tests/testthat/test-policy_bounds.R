@@ -26,6 +26,21 @@ test_that("policy_regret_bound accepts deficiency object", {
   expect_equal(bound$delta, min(def_result$estimates))
 })
 
+test_that("policy_regret_bound warns when selecting the minimum across methods", {
+  spec <- .make_test_spec(n = 100)
+  def_result <- estimate_deficiency(spec, methods = c("unadjusted", "iptw"), n_boot = 10, verbose = FALSE)
+
+  expect_warning(
+    bound <- policy_regret_bound(
+      deficiency = def_result,
+      utility_range = c(0, 1)
+    ),
+    "optimistic"
+  )
+
+  expect_equal(bound$delta_selection, "optimistic_minimum")
+})
+
 test_that("policy_regret_bound can use upper CI for delta", {
   spec <- .make_test_spec(n = 100)
   def_result <- estimate_deficiency(spec, methods = c("unadjusted", "iptw"), n_boot = 20, verbose = FALSE)
@@ -33,12 +48,14 @@ test_that("policy_regret_bound can use upper CI for delta", {
   bound_upper <- policy_regret_bound(
     deficiency = def_result,
     utility_range = c(0, 1),
-    delta_mode = "upper"
+    delta_mode = "upper",
+    method = "iptw"
   )
   
   expect_s3_class(bound_upper, "policy_bound")
-  expect_true(bound_upper$delta >= min(def_result$estimates))
-  expect_equal(bound_upper$delta, min(def_result$ci[, 2]))
+  expect_true(bound_upper$delta >= def_result$estimates["iptw"])
+  expect_equal(bound_upper$delta, unname(def_result$ci["iptw", 2]))
+  expect_equal(bound_upper$delta_selection, "explicit_method")
 })
 
 test_that("policy regret bounds match manuscript", {

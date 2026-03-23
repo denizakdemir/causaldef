@@ -12,6 +12,8 @@ test_that("nc_diagnostic returns correct class", {
   expect_true("delta_bound" %in% names(result))
   expect_true("falsified" %in% names(result))
   expect_true("p_value" %in% names(result))
+  expect_true("screening" %in% names(result))
+  expect_equal(result$p_value_method, "permutation")
 })
 
 test_that("nc_diagnostic works with factor treatments", {
@@ -69,6 +71,9 @@ test_that("nc_diagnostic falsification flag works", {
   result <- nc_diagnostic(spec, method = "iptw", alpha = 0.05, n_boot = 50)
   
   expect_type(result$falsified, "logical")
+  expect_true(is.list(result$screening))
+  expect_true(is.numeric(result$screening$statistic))
+  expect_true(result$p_value >= 0 && result$p_value <= 1)
 })
 
 test_that("print.nc_diagnostic works", {

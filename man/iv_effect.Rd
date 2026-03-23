@@ -22,7 +22,8 @@ iv_effect(
 \itemize{
 \item "2sls": Two-stage least squares
 \item "wald": Wald estimator (ratio of reduced forms)
-\item "liml": Limited information maximum likelihood
+\item "liml": Reserved for a future limited-information maximum likelihood
+implementation. The current release errors if requested.
 }}
 
 \item{n_boot}{Integer: bootstrap replicates for CI}
@@ -39,12 +40,13 @@ Object of class "iv_effect" containing:
 \item ci: Confidence interval
 \item f_stat: First-stage F-statistic
 \item weak_iv: Logical, whether instrument is weak
-\item deficiency: Deficiency bound from instrument strength
+\item deficiency_proxy: Heuristic proxy derived from first-stage strength
+\item deficiency: Backward-compatible alias of \code{deficiency_proxy}
 }
 }
 \description{
-Estimates causal effects using instrumental variables (IV) with deficiency
-bounds for the strength of the instrument.
+Estimates causal effects using instrumental variables (IV) together with
+first-stage strength diagnostics.
 }
 \details{
 Instrumental variables identify the Local Average Treatment Effect (LATE)
@@ -55,10 +57,10 @@ for compliers when:
 \item Independence: Z is independent of unmeasured confounders
 }
 
-The IV deficiency bound relates to instrument strength:
-\deqn{\delta_{IV} \propto 1 / \sqrt{F}}
-
-Weak instruments (F < 10) lead to high deficiency and unreliable inference.
+Weak instruments (small first-stage F-statistics) lead to unstable IV inference.
+The current implementation reports a \code{deficiency_proxy} derived from instrument
+strength; it should be interpreted as a screening diagnostic rather than an exact
+Le Cam deficiency.
 }
 \examples{
 # Simulate IV setting
@@ -73,7 +75,7 @@ Y <- 1 + 2 * A + 0.8 * U + rnorm(n)  # Outcome
 df <- data.frame(Z = Z, A = A, Y = Y)
 spec <- causal_spec(df, "A", "Y", instrument = "Z")
 
-\dontrun{
+\donttest{
 iv_result <- iv_effect(spec)
 print(iv_result)
 }

@@ -163,7 +163,7 @@ delta <- defom$estimates["iptw"]
 
 # 2. Compute Safety Floor
 # Utility range is [0, 1] (Mortality 0 or 1)
-bounds <- policy_regret_bound(defom, utility_range = c(0, 1))
+bounds <- policy_regret_bound(defom, utility_range = c(0, 1), method = "iptw")
 
 print(bounds)
 ```

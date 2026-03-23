@@ -231,9 +231,19 @@ plot.policy_bound <- function(x, type = c("decomposition", "safety_curve"), ...)
     
     df <- data.frame(delta = delta_seq, transfer = transfer_seq, minimax = minimax_seq)
     
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = delta)) +
-      ggplot2::geom_line(ggplot2::aes(y = transfer), linewidth = 1.2, color = "darkred") +
-      ggplot2::geom_line(ggplot2::aes(y = minimax), linewidth = 1.2, color = "gray40", linetype = "dashed") +
+    p <- ggplot2::ggplot(df, ggplot2::aes(x = delta))
+
+    if (utils::packageVersion("ggplot2") >= "3.4.0") {
+      p <- p +
+        ggplot2::geom_line(ggplot2::aes(y = transfer), linewidth = 1.2, color = "darkred") +
+        ggplot2::geom_line(ggplot2::aes(y = minimax), linewidth = 1.2, color = "gray40", linetype = "dashed")
+    } else {
+      p <- p +
+        ggplot2::geom_line(ggplot2::aes(y = transfer), size = 1.2, color = "darkred") +
+        ggplot2::geom_line(ggplot2::aes(y = minimax), size = 1.2, color = "gray40", linetype = "dashed")
+    }
+
+    p <- p +
       ggplot2::labs(
         title = "Regret Bounds vs Deficiency",
         x = expression(delta),
@@ -375,8 +385,15 @@ plot.nc_diagnostic_sensitivity <- function(x, threshold = 0.05, ...) {
   
   sens <- x$sensitivity
   
-  p <- ggplot2::ggplot(sens, ggplot2::aes(x = kappa, y = delta_bound)) +
-    ggplot2::geom_line(linewidth = 1.2, color = "steelblue") +
+  p <- ggplot2::ggplot(sens, ggplot2::aes(x = kappa, y = delta_bound))
+
+  if (utils::packageVersion("ggplot2") >= "3.4.0") {
+    p <- p + ggplot2::geom_line(linewidth = 1.2, color = "steelblue")
+  } else {
+    p <- p + ggplot2::geom_line(size = 1.2, color = "steelblue")
+  }
+
+  p <- p +
     ggplot2::geom_point(size = 2, color = "steelblue") +
     ggplot2::geom_hline(yintercept = threshold, linetype = "dashed", color = "red", alpha = 0.7) +
     ggplot2::annotate("text", x = max(sens$kappa), y = threshold, 

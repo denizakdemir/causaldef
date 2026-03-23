@@ -2,7 +2,7 @@
 % Please edit documentation in R/transport.R
 \name{transport_deficiency}
 \alias{transport_deficiency}
-\title{Transport Deficiency Between Source and Target Populations}
+\title{Transport Diagnostic Between Source and Target Populations}
 \usage{
 transport_deficiency(
   source_spec,
@@ -34,7 +34,9 @@ transport_deficiency(
 \value{
 Object of class "transport_deficiency" containing:
 \itemize{
-\item delta_transport: The transport deficiency
+\item delta_transport_proxy: Heuristic transport-risk proxy combining
+covariate shift, weight instability, and sample-size imbalance
+\item delta_transport: Backward-compatible alias of \code{delta_transport_proxy}
 \item covariate_shift: Per-variable shift diagnostics
 \item weights: Transport weights for source observations
 \item ate_source: ATE estimate in source population
@@ -42,15 +44,14 @@ Object of class "transport_deficiency" containing:
 }
 }
 \description{
-Computes the deficiency for transporting causal effects from a source
-population to a target population. This quantifies how much information
-is lost when extrapolating treatment effects across populations.
+Computes a transport diagnostic for extrapolating causal effects from a source
+population to a target population.
 }
 \details{
-Transport deficiency measures how much causal information is lost when
-moving from source S to target T:
-
-\deqn{\delta_{transport} = \delta(\mathcal{E}_S, \mathcal{E}_T)}
+A transport problem can be framed through deficiency, but the current release
+does \emph{not} estimate an exact transport deficiency. Instead, it returns a
+heuristic transport-risk proxy that combines observable covariate shift,
+transport-weight instability, and source/target sample-size imbalance.
 
 Key assumptions for valid transport:
 \enumerate{
@@ -74,7 +75,7 @@ age_t <- rnorm(n_target, 65, 8)  # Older population
 target_df <- data.frame(age = age_t, S = 0)
 
 source_spec <- causal_spec(source_df, "A", "Y", "age")
-\dontrun{
+\donttest{
 transport <- transport_deficiency(
   source_spec,
   target_data = target_df,
