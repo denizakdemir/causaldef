@@ -14,7 +14,11 @@
 \item{...}{Additional arguments}
 }
 \value{
-A ggplot2 object
+A \code{ggplot2} object. With \code{type = "decomposition"}, the plot
+decomposes the policy-regret bound into observed regret, transfer penalty,
+and minimax floor components. With \code{type = "safety_curve"}, the plot shows
+how the transfer penalty and minimax floor vary as a function of
+deficiency, with fitted-method points overlaid when available.
 }
 \description{
 Plot Policy Regret Bound

@@ -252,6 +252,11 @@ frontdoor_effect <- function(spec, mediator, method = c("plugin", "dr"),
 #' Print method for frontdoor_effect
 #' @param x A frontdoor_effect object
 #' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed output reports the
+#'   mediator, estimation method, front-door effect estimate, optional
+#'   bootstrap standard error and confidence interval, and the heuristic
+#'   discrepancy proxy stored in `x$deficiency_proxy`.
 #' @export
 print.frontdoor_effect <- function(x, ...) {
   cli::cli_h1("Front-Door Causal Effect")

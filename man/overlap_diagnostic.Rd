@@ -13,7 +13,18 @@ overlap_diagnostic(spec, trim = 0.01)
 are flagged as extreme.}
 }
 \value{
-List with propensity summary and effective sample size.
+An object of class \code{"overlap_diagnostic"} containing:
+\itemize{
+\item \code{trim}: trimming threshold used to classify extreme propensity scores
+\item \code{n}: sample size
+\item \code{extreme_n}: number of observations with propensity scores outside
+the acceptable overlap region
+\item \code{kept_n}: number of observations remaining after trimming
+\item \code{ps_summary}: selected propensity-score quantiles
+\item \code{ess_iptw}: effective sample size under IPTW weights
+}
+These quantities summarize how much practical overlap is available for
+weighted causal estimation.
 }
 \description{
 Summarizes overlap/positivity issues via propensity score distribution and

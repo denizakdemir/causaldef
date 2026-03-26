@@ -2,6 +2,15 @@
 # Print Methods for causaldef Classes
 # =============================================================================
 
+#' Print method for causal_spec
+#'
+#' @param x A causal_spec object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   treatment and outcome variables with their inferred types, the adjustment
+#'   covariates, sample size, estimand, and any registered negative control or
+#'   instrument.
 #' @export
 print.causal_spec <- function(x, ...) {
   cat("\n-- Causal Specification ", paste(rep("-", 50), collapse = ""), "\n\n", sep = "")
@@ -21,6 +30,15 @@ print.causal_spec <- function(x, ...) {
   invisible(x)
 }
 
+#' Print method for deficiency
+#'
+#' @param x A deficiency object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary shows the
+#'   method-specific deficiency estimates, optional standard errors and
+#'   confidence intervals, qualitative traffic-light labels, any PS-TV proxy
+#'   note, and the method with the smallest reported deficiency.
 #' @export
 print.deficiency <- function(x, ...) {
   title <- if (!is.null(x$metric) && identical(x$metric, "ps_tv")) {
@@ -62,6 +80,15 @@ print.deficiency <- function(x, ...) {
   invisible(x)
 }
 
+#' Print method for nc_diagnostic
+#'
+#' @param x An nc_diagnostic object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   screening statistic, observed negative-control proxy `delta_nc`, the
+#'   translated deficiency bound `delta_bound`, the chosen `kappa`, the
+#'   permutation p-value, and whether the negative-control screen was rejected.
 #' @export
 print.nc_diagnostic <- function(x, ...) {
   cat("\n-- Negative Control Diagnostic ", paste(rep("-", 40), collapse = ""), "\n\n", sep = "")
@@ -86,6 +113,16 @@ print.nc_diagnostic <- function(x, ...) {
   invisible(x)
 }
 
+#' Print method for policy_bound
+#'
+#' @param x A policy_bound object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   deficiency value used in the regret bound, how that value was selected,
+#'   the utility range, transfer-penalty and minimax components, any observed
+#'   regret supplied by the user, and the resulting interpretation on the
+#'   utility scale.
 #' @export
 print.policy_bound <- function(x, ...) {
   cat("\n-- Policy Regret Bounds ", paste(rep("-", 49), collapse = ""), "\n\n", sep = "")
@@ -139,6 +176,15 @@ print.policy_bound <- function(x, ...) {
   invisible(x)
 }
 
+#' Print method for partial_id_set
+#'
+#' @param x A partial_id_set object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   target estimand, point estimate, chosen deficiency radius, resulting
+#'   half-width, and the conservative identification interval implied by that
+#'   radius.
 #' @export
 print.partial_id_set <- function(x, ...) {
   cat("\n-- Partial Identification Set ", paste(rep("-", 46), collapse = ""), "\n\n", sep = "")
@@ -150,6 +196,15 @@ print.partial_id_set <- function(x, ...) {
   invisible(x)
 }
 
+#' Print method for overlap_diagnostic
+#'
+#' @param x An overlap_diagnostic object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   sample size, trimming threshold, number of extreme propensity scores,
+#'   number retained after trimming, IPTW effective sample size, and propensity
+#'   score quantiles.
 #' @export
 print.overlap_diagnostic <- function(x, ...) {
   cat("\n-- Overlap Diagnostic ", paste(rep("-", 52), collapse = ""), "\n\n", sep = "")
@@ -164,6 +219,15 @@ print.overlap_diagnostic <- function(x, ...) {
   invisible(x)
 }
 
+#' Print method for confounding_frontier
+#'
+#' @param x A confounding_frontier object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   sensitivity-grid dimensions, alpha and gamma ranges, model label, summary
+#'   statistics of the deficiency surface, and the proportion of the grid with
+#'   near-zero deficiency.
 #' @export
 print.confounding_frontier <- function(x, ...) {
   cat("\n-- Confounding Frontier (Confounding Lower Bound) ", paste(rep("-", 26), collapse = ""), "\n\n", sep = "")
@@ -186,6 +250,15 @@ print.confounding_frontier <- function(x, ...) {
   invisible(x)
 }
 
+#' Print method for data_audit_report
+#'
+#' @param x A data_audit_report object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed report summarizes the
+#'   audited treatment/outcome pair, number of variables reviewed, number of
+#'   flagged issues, a table of non-safe findings, and the recommended next
+#'   actions.
 #' @export
 print.data_audit_report <- function(x, ...) {
   cat("\n")

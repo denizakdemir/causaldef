@@ -244,6 +244,11 @@ iv_effect <- function(spec, instrument = NULL,
 #' Print method for iv_effect
 #' @param x An iv_effect object
 #' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed output reports the
+#'   instrument and estimation method, first-stage F-statistic, weak-IV flag,
+#'   IV effect estimate, optional bootstrap uncertainty, and the heuristic
+#'   strength proxy stored in `x$deficiency_proxy`.
 #' @export
 print.iv_effect <- function(x, ...) {
   cli::cli_h1("Instrumental Variable Effect")
@@ -282,6 +287,12 @@ print.iv_effect <- function(x, ...) {
 #' Summary method for iv_effect
 #' @param object An iv_effect object
 #' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `object`, unchanged. The printed summary includes
+#'   the instrument, estimation method, sample size, the coefficient table from
+#'   the first-stage regression stored in `object$first_stage`, the IV effect
+#'   estimate with optional bootstrap uncertainty, and the weak-instrument
+#'   diagnostics.
 #' @export
 summary.iv_effect <- function(object, ...) {
   cat("\n=== Instrumental Variable Analysis Summary ===\n\n")
@@ -316,7 +327,19 @@ summary.iv_effect <- function(object, ...) {
 #' @param instrument Instrument name
 #' @param overid_test Logical: perform overidentification test if multiple instruments
 #'
-#' @return List with test results
+#' @return A named list of IV screening diagnostics with components such as:
+#'   \itemize{
+#'     \item `relevance`: first-stage F-statistic, its p-value, and a logical
+#'     pass/fail flag relative to the weak-IV threshold of 10
+#'     \item `balance`: when covariates are present, per-covariate balance
+#'     p-values and an overall pass/fail flag for instrument-covariate balance
+#'     \item `reduced_form`: coefficient, standard error, p-value, and
+#'     significance flag for the reduced-form association of the instrument with
+#'     the outcome
+#'   }
+#'   These outputs are diagnostics for testable parts of the IV design. They do
+#'   not by themselves prove the exclusion restriction or full instrument
+#'   validity.
 #' @export
 test_instrument <- function(spec, instrument = NULL, overid_test = TRUE) {
   

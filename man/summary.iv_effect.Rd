@@ -11,6 +11,13 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+Invisibly returns \code{object}, unchanged. The printed summary includes
+the instrument, estimation method, sample size, the coefficient table from
+the first-stage regression stored in \code{object$first_stage}, the IV effect
+estimate with optional bootstrap uncertainty, and the weak-instrument
+diagnostics.
+}
 \description{
 Summary method for iv_effect
 }

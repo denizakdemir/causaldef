@@ -40,7 +40,29 @@ If \code{event} is factor/character, you may pass the label (e.g., \code{"Death"
 \item{estimand}{Character: "cif" (cumulative incidence) or "cshr" (cause-specific HR)}
 }
 \value{
-Object of class c("causal_spec_competing", "causal_spec_survival", "causal_spec")
+Object of class
+\code{c("causal_spec_competing", "causal_spec_survival", "causal_spec")}
+containing:
+\itemize{
+\item \code{data}: the analysis dataset, with the event column normalized to
+integer codes (\code{0} = censored, \verb{1,2,...} = event types)
+\item \code{treatment}, \code{time}, \code{event}: names of the core analysis variables
+\item \code{covariates}: adjustment covariates
+\item \code{event_of_interest}: integer code of the primary event type
+\item \code{event_types}: observed non-censor event codes
+\item \code{n_events}: number of distinct non-censor event types
+\item \code{event_map}: optional mapping from original factor/character labels
+to integer event codes
+\item \code{event_levels}: original non-censor event labels when the input
+event variable was character or factor
+\item \code{horizon}: target time horizon for cumulative incidence summaries
+\item \code{estimand}: requested competing-risks estimand (\code{"cif"} or \code{"cshr"})
+\item \code{treatment_type}: inferred treatment scale
+\item \code{n}: retained sample size
+\item \code{outcome_type}: fixed label \code{"competing_risks"}
+}
+This object records how the competing-risks problem is encoded and is the
+input consumed by competing-risks deficiency estimation.
 }
 \description{
 Creates a specification object for time-to-event data with competing events.

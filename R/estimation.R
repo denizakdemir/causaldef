@@ -10,15 +10,23 @@
 #' @param object A `deficiency` object returned by `estimate_deficiency()`
 #' @param ... Additional arguments passed to specific estimators
 #'
-#' @return A list containing:
+#' @return An object of class `"causal_effect"`. Depending on the underlying
+#'   estimand, the object contains:
 #'   \itemize{
-#'     \item estimand: The estimated effect (numeric)
-#'     \item type: Type of estimand (e.g., "ATE", "RMST Diff")
-#'     \item method: Method used (e.g., "iptw")
-#'     \item contrast: Contrast levels
-#'     \item ci: Confidence interval (if bootstrap supported - future work)
-#'     \item curves: (Survival only) Adjusted survival curves
+#'     \item `estimate`: scalar causal contrast when a point effect is computed
+#'     \item `mu1`, `mu0`: adjusted outcome means for treated and control
+#'     groups in standard outcome settings
+#'     \item `rmst1`, `rmst0`: restricted mean survival times under the two
+#'     contrast levels for RMST analyses
+#'     \item `fit`: a fitted `survival::survfit` object when survival curves are
+#'     returned
+#'     \item `horizon`: RMST horizon when relevant
+#'     \item `type`: human-readable label for the returned estimand
+#'     \item `method`: adjustment method used to construct the effect estimate
+#'     \item `contrast`: treated and control values used in the comparison
 #'   }
+#'   The object represents the causal effect implied by the fitted kernel stored
+#'   in the `deficiency` object for the chosen method.
 #' 
 #' @examples
 #' \donttest{
@@ -330,6 +338,14 @@ estimate_effect.deficiency <- function(object, target_method = NULL,
   }
 }
 
+#' Print method for causal_effect
+#'
+#' @param x A causal_effect object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   estimation method, estimand type, treatment contrast, scalar effect
+#'   estimate when available, and the horizon for RMST analyses.
 #' @export
 print.causal_effect <- function(x, ...) {
   cat("\n-- Causal Effect Estimate ----------------------\n")

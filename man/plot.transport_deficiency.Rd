@@ -13,6 +13,14 @@
 
 \item{...}{Additional arguments passed to plot}
 }
+\value{
+A \code{ggplot2} object. With \code{type = "shift"}, the returned plot is a
+horizontal bar chart of \code{x$covariate_shift}, where bar height is the
+variable-specific shift metric and fill encodes the severity category.
+With \code{type = "weights"}, the returned plot is a histogram of
+\code{x$weights} with a reference line at 1 and a subtitle summarizing the
+effective sample size after weighting.
+}
 \description{
 Plot method for transport_deficiency
 }

@@ -13,6 +13,12 @@ run_causaldef_api(port = 8080, swagger = TRUE, path = NULL)
 
 \item{path}{Character: path to API files (will create if missing)}
 }
+\value{
+This function is called primarily for its side effect of starting a
+blocking Plumber API server on \code{port}. No stable structured return value is
+guaranteed by \code{causaldef}; when control returns to R, the function returns
+whatever value is produced by \code{plumber::plumb(api_file)$run(...)}.
+}
 \description{
 Convenience function to start the plumber API server
 }

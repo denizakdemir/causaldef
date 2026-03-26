@@ -29,15 +29,23 @@ the method with the lowest estimated deficiency.}
 Defaults to c(treatment_value, control_value).}
 }
 \value{
-A list containing:
+An object of class \code{"causal_effect"}. Depending on the underlying
+estimand, the object contains:
 \itemize{
-\item estimand: The estimated effect (numeric)
-\item type: Type of estimand (e.g., "ATE", "RMST Diff")
-\item method: Method used (e.g., "iptw")
-\item contrast: Contrast levels
-\item ci: Confidence interval (if bootstrap supported - future work)
-\item curves: (Survival only) Adjusted survival curves
+\item \code{estimate}: scalar causal contrast when a point effect is computed
+\item \code{mu1}, \code{mu0}: adjusted outcome means for treated and control
+groups in standard outcome settings
+\item \code{rmst1}, \code{rmst0}: restricted mean survival times under the two
+contrast levels for RMST analyses
+\item \code{fit}: a fitted \code{survival::survfit} object when survival curves are
+returned
+\item \code{horizon}: RMST horizon when relevant
+\item \code{type}: human-readable label for the returned estimand
+\item \code{method}: adjustment method used to construct the effect estimate
+\item \code{contrast}: treated and control values used in the comparison
 }
+The object represents the causal effect implied by the fitted kernel stored
+in the \code{deficiency} object for the chosen method.
 }
 \description{
 Uses the fitted causal kernels (from \code{estimate_deficiency}) to estimate

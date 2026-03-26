@@ -11,6 +11,12 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+Invisibly returns \code{x}, unchanged. The printed output summarizes the
+competing-risks specification: treatment, time and event variables,
+event-of-interest coding, time horizon, estimand, optional event-label
+mapping, covariates, sample size, and the observed event-count breakdown.
+}
 \description{
 Print method for causal_spec_competing
 }

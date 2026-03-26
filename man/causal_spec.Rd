@@ -36,10 +36,28 @@ causal_spec(
 \item{na.action}{Function: how to handle missing values (default: na.omit)}
 }
 \value{
-Object of class "causal_spec".
-\strong{Note}: While \code{causal_spec} can describe categorical or continuous treatments,
-current downstream estimation functions (\code{estimate_deficiency}, \code{estimate_effect})
-require \strong{binary} treatments.
+Object of class \code{"causal_spec"} containing:
+\itemize{
+\item \code{data}: the analysis dataset after applying \code{na.action} to the
+required variables
+\item \code{treatment}: name of the treatment variable
+\item \code{outcome}: name of the outcome variable
+\item \code{covariates}: adjustment covariates used to define the causal problem
+\item \code{negative_control}: optional negative control outcome name
+\item \code{instrument}: optional instrument name
+\item \code{estimand}: target causal estimand
+\item \code{outcome_type}: declared outcome scale
+\item \code{treatment_type}: inferred treatment scale (\code{"binary"},
+\code{"categorical"}, or \code{"continuous"})
+\item \code{n}: retained sample size after preprocessing
+}
+This object is the package's core problem specification: it records which
+columns define the observational causal study and is consumed by
+downstream estimators and diagnostics.
+
+\strong{Note}: while \code{causal_spec()} can describe categorical or continuous
+treatments, the current downstream estimation functions
+(\code{estimate_deficiency()}, \code{estimate_effect()}) require a binary treatment.
 }
 \description{
 Defines the causal inference problem including treatment, outcome, covariates,

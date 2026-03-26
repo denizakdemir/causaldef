@@ -9,6 +9,12 @@ create_shiny_app_files(path = "causaldef_app")
 \arguments{
 \item{path}{Directory to write the app files}
 }
+\value{
+Invisibly returns \code{path}, the directory where the generated
+standalone app files were written. In the current implementation this is
+the folder containing the generated \code{app.R}, which can then be deployed
+with Shiny hosting tools.
+}
 \description{
 Generates app.R and global.R files for standalone deployment
 (e.g., shinyapps.io, Shiny Server)

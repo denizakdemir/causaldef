@@ -11,6 +11,12 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+Invisibly returns \code{x}, unchanged. The printed output reports the
+mediator, estimation method, front-door effect estimate, optional
+bootstrap standard error and confidence interval, and the heuristic
+discrepancy proxy stored in \code{x$deficiency_proxy}.
+}
 \description{
 Print method for frontdoor_effect
 }

@@ -178,7 +178,17 @@ sharp_lower_bound <- function(alpha,
 #' @param estimand One of `"mean"` or `"ate"`.
 #' @param outcome_range Numeric vector c(min, max) bounding the outcome.
 #'
-#' @return List with `lower`, `upper`, `estimate`, and `half_width`.
+#' @return An object of class `"partial_id_set"` containing:
+#'   \itemize{
+#'     \item `estimand`: whether the interval applies to a bounded mean or an ATE
+#'     \item `estimate`: the supplied point estimate
+#'     \item `delta`: the deficiency radius used to widen the estimate
+#'     \item `outcome_range`: assumed outcome bounds
+#'     \item `half_width`: worst-case expansion implied by `delta`
+#'     \item `lower`, `upper`: conservative identification limits
+#'   }
+#'   The interval describes all values consistent with the supplied estimate and
+#'   the chosen total-variation deficiency radius.
 #' @export
 partial_id_set <- function(estimate,
                            delta,
@@ -222,7 +232,18 @@ partial_id_set <- function(estimate,
 #' @param trim Trimming threshold in (0, 0.5). Values outside \eqn{[trim, 1 - trim]}
 #'   are flagged as extreme.
 #'
-#' @return List with propensity summary and effective sample size.
+#' @return An object of class `"overlap_diagnostic"` containing:
+#'   \itemize{
+#'     \item `trim`: trimming threshold used to classify extreme propensity scores
+#'     \item `n`: sample size
+#'     \item `extreme_n`: number of observations with propensity scores outside
+#'     the acceptable overlap region
+#'     \item `kept_n`: number of observations remaining after trimming
+#'     \item `ps_summary`: selected propensity-score quantiles
+#'     \item `ess_iptw`: effective sample size under IPTW weights
+#'   }
+#'   These quantities summarize how much practical overlap is available for
+#'   weighted causal estimation.
 #' @export
 overlap_diagnostic <- function(spec, trim = 0.01) {
   validate_causal_spec(spec)

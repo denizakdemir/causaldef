@@ -425,6 +425,11 @@ docker run -p %d:%d causaldef-api
 #' @param swagger Logical: enable Swagger UI (default TRUE)
 #' @param path Character: path to API files (will create if missing)
 #'
+#' @return This function is called primarily for its side effect of starting a
+#'   blocking Plumber API server on `port`. No stable structured return value is
+#'   guaranteed by `causaldef`; when control returns to R, the function returns
+#'   whatever value is produced by `plumber::plumb(api_file)$run(...)`.
+#'
 #' @export
 run_causaldef_api <- function(port = 8080, swagger = TRUE, path = NULL) {
   

@@ -14,7 +14,19 @@ test_instrument(spec, instrument = NULL, overid_test = TRUE)
 \item{overid_test}{Logical: perform overidentification test if multiple instruments}
 }
 \value{
-List with test results
+A named list of IV screening diagnostics with components such as:
+\itemize{
+\item \code{relevance}: first-stage F-statistic, its p-value, and a logical
+pass/fail flag relative to the weak-IV threshold of 10
+\item \code{balance}: when covariates are present, per-covariate balance
+p-values and an overall pass/fail flag for instrument-covariate balance
+\item \code{reduced_form}: coefficient, standard error, p-value, and
+significance flag for the reduced-form association of the instrument with
+the outcome
+}
+These outputs are diagnostics for testable parts of the IV design. They do
+not by themselves prove the exclusion restriction or full instrument
+validity.
 }
 \description{
 Performs diagnostic tests for instrumental variable assumptions

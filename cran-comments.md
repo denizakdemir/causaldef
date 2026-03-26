@@ -23,6 +23,13 @@ Warning:
   could not be run.
 
 ## Responses to CRAN Feedback
+* Added explicit `\value{}` documentation across the exported API, including
+  all CRAN-flagged pages and the remaining exported print/plot helpers. The
+  updated help pages now describe the returned object, class, invisible return
+  semantics, plotted content, or side-effect-oriented behavior as appropriate.
+* Expanded the return-value documentation for the causal specification and
+  effect/diagnostic helpers so the object structure and meaning of the output
+  are documented more explicitly, including `causal_spec_competing()`.
 * Clarified the package contract to distinguish theorem-backed bounds from
   computable deficiency proxies, sensitivity diagnostics, and heuristic modules.
 * Disabled previously misleading estimator labels:

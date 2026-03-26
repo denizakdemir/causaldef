@@ -41,7 +41,26 @@ non-missing values as events. For competing risks, prefer
 \item{na.action}{Function: how to handle missing values}
 }
 \value{
-Object of class "causal_spec_survival"
+Object of class \code{c("causal_spec_survival", "causal_spec")}
+containing:
+\itemize{
+\item \code{data}: the survival analysis dataset after applying \code{na.action}
+and coercing the event indicators when needed
+\item \code{treatment}: name of the treatment variable
+\item \code{time}: name of the follow-up time variable
+\item \code{event}: name of the primary event indicator
+\item \code{covariates}: adjustment covariates
+\item \code{competing_event}: optional competing-event indicator used by
+survival workflows that model it separately
+\item \code{estimand}: target survival estimand (\code{"ATE"}, \code{"RMST"}, or \code{"HR"})
+\item \code{horizon}: RMST horizon when relevant
+\item \code{treatment_type}: inferred treatment scale
+\item \code{n}: retained sample size
+\item \code{n_events}: number of observed primary events
+\item \code{max_time}: maximum observed follow-up time
+}
+The returned object defines a time-to-event causal problem for downstream
+deficiency estimation and effect estimation.
 }
 \description{
 Defines a causal inference problem with time-to-event outcomes.

@@ -17,10 +17,28 @@
 #' @param outcome_type Character: type of outcome, one of "continuous", "binary", "count"
 #' @param na.action Function: how to handle missing values (default: na.omit)
 #'
-#' @return Object of class "causal_spec".
-#'   \strong{Note}: While `causal_spec` can describe categorical or continuous treatments, 
-#'   current downstream estimation functions (`estimate_deficiency`, `estimate_effect`) 
-#'   require **binary** treatments.
+#' @return Object of class `"causal_spec"` containing:
+#'   \itemize{
+#'     \item `data`: the analysis dataset after applying `na.action` to the
+#'     required variables
+#'     \item `treatment`: name of the treatment variable
+#'     \item `outcome`: name of the outcome variable
+#'     \item `covariates`: adjustment covariates used to define the causal problem
+#'     \item `negative_control`: optional negative control outcome name
+#'     \item `instrument`: optional instrument name
+#'     \item `estimand`: target causal estimand
+#'     \item `outcome_type`: declared outcome scale
+#'     \item `treatment_type`: inferred treatment scale (`"binary"`,
+#'     `"categorical"`, or `"continuous"`)
+#'     \item `n`: retained sample size after preprocessing
+#'   }
+#'   This object is the package's core problem specification: it records which
+#'   columns define the observational causal study and is consumed by
+#'   downstream estimators and diagnostics.
+#'
+#'   \strong{Note}: while `causal_spec()` can describe categorical or continuous
+#'   treatments, the current downstream estimation functions
+#'   (`estimate_deficiency()`, `estimate_effect()`) require a binary treatment.
 #'
 #' @examples
 #' # Create sample data

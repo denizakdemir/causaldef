@@ -293,6 +293,11 @@ run_causaldef_app <- function(data = NULL, port = 3838, launch.browser = TRUE) {
 #'
 #' @param path Directory to write the app files
 #'
+#' @return Invisibly returns `path`, the directory where the generated
+#'   standalone app files were written. In the current implementation this is
+#'   the folder containing the generated `app.R`, which can then be deployed
+#'   with Shiny hosting tools.
+#'
 #' @export
 create_shiny_app_files <- function(path = "causaldef_app") {
   

@@ -21,7 +21,23 @@ estimate_deficiency_competing(
 \item{ci_level}{Numeric: confidence level}
 }
 \value{
-Object of class "deficiency" with competing risks components
+Object of class \code{c("deficiency_competing", "deficiency")}
+containing:
+\itemize{
+\item \code{estimates}: named vector with the competing-risks deficiency proxy
+estimate
+\item \code{se}: bootstrap standard error for that estimate
+\item \code{ci}: bootstrap confidence interval matrix
+\item \code{method}: the competing-risks estimation strategy used
+\item \code{cif}: weighted and unweighted cumulative-incidence calculations by
+event type
+\item \code{spec}: the original \code{causal_spec_competing} object
+\item \code{kernel}: fitted nuisance quantities used by the estimator,
+including propensity scores and weights
+}
+The reported deficiency summarizes how different the weighted and
+unweighted cumulative-incidence behavior is for the event-of-interest
+analysis under the selected competing-risks approach.
 }
 \description{
 Computes Le Cam deficiency for competing risks outcomes using

@@ -8,7 +8,10 @@
 #' @param type Character: plot type ("bar", "forest")
 #' @param ... Additional arguments passed to ggplot2 functions
 #'
-#' @return A ggplot2 object
+#' @return A `ggplot2` object. With `type = "bar"`, the plot shows the
+#'   method-specific deficiency estimates as bars with optional confidence
+#'   intervals and interpretation thresholds. With `type = "forest"`, the plot
+#'   shows the same estimates horizontally with optional confidence intervals.
 #' @export
 plot.deficiency <- function(x, type = c("bar", "forest"), ...) {
   type <- match.arg(type)
@@ -87,7 +90,10 @@ plot.deficiency <- function(x, type = c("bar", "forest"), ...) {
 #' @param threshold Numeric vector: threshold values for contour lines
 #' @param ... Additional arguments
 #'
-#' @return A ggplot2 object
+#' @return A `ggplot2` object visualizing the confounding sensitivity surface
+#'   over the `(alpha, gamma)` grid. `type = "heatmap"` returns a tile plot of
+#'   `x$grid$delta` with optional contour lines and benchmark points, while
+#'   `type = "contour"` returns filled contours of the same surface.
 #' @export
 plot.confounding_frontier <- function(x, type = c("heatmap", "contour"),
                                       threshold = c(0.05, 0.1, 0.2), ...) {
@@ -183,7 +189,11 @@ plot.confounding_frontier <- function(x, type = c("heatmap", "contour"),
 #' @param type Character: plot type
 #' @param ... Additional arguments
 #'
-#' @return A ggplot2 object
+#' @return A `ggplot2` object. With `type = "decomposition"`, the plot
+#'   decomposes the policy-regret bound into observed regret, transfer penalty,
+#'   and minimax floor components. With `type = "safety_curve"`, the plot shows
+#'   how the transfer penalty and minimax floor vary as a function of
+#'   deficiency, with fitted-method points overlaid when available.
 #' @export
 plot.policy_bound <- function(x, type = c("decomposition", "safety_curve"), ...) {
   type <- match.arg(type)
@@ -290,7 +300,11 @@ plot.policy_bound <- function(x, type = c("decomposition", "safety_curve"), ...)
 #' @param x A causal_effect object
 #' @param ... Additional arguments passed to plot functions
 #'
-#' @return A plot object (base or ggplot)
+#' @return If `x` contains a fitted `survival::survfit` object, the function is
+#'   called for its side effect of drawing base-R survival curves and returns
+#'   `NULL` invisibly. Otherwise it returns a `ggplot2` object showing the
+#'   point estimate for `x$estimate` and, when available, its confidence
+#'   interval.
 #' @export
 plot.causal_effect <- function(x, ...) {
   
@@ -363,7 +377,10 @@ plot.causal_effect <- function(x, ...) {
 #' @param threshold Numeric: threshold line to add (default 0.05)
 #' @param ... Additional arguments passed to plot functions
 #'
-#' @return A ggplot2 object
+#' @return If `ggplot2` is available, a `ggplot2` object showing how
+#'   `delta_bound` varies across `kappa` values, with an optional threshold
+#'   line. Otherwise the function is called for its side effect of producing a
+#'   base-R plot and returns `NULL` invisibly.
 #' @export
 plot.nc_diagnostic_sensitivity <- function(x, threshold = 0.05, ...) {
   

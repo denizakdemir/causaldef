@@ -14,7 +14,10 @@
 \item{...}{Additional arguments passed to plot functions}
 }
 \value{
-A ggplot2 object
+If \code{ggplot2} is available, a \code{ggplot2} object showing how
+\code{delta_bound} varies across \code{kappa} values, with an optional threshold
+line. Otherwise the function is called for its side effect of producing a
+base-R plot and returns \code{NULL} invisibly.
 }
 \description{
 Visualizes how the deficiency bound varies across different values of

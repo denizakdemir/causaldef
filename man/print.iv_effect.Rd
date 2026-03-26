@@ -11,6 +11,12 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+Invisibly returns \code{x}, unchanged. The printed output reports the
+instrument and estimation method, first-stage F-statistic, weak-IV flag,
+IV effect estimate, optional bootstrap uncertainty, and the heuristic
+strength proxy stored in \code{x$deficiency_proxy}.
+}
 \description{
 Print method for iv_effect
 }

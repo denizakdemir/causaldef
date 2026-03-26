@@ -355,6 +355,11 @@ transport_deficiency <- function(source_spec, target_data,
 #' Print method for transport_deficiency
 #' @param x A transport_deficiency object
 #' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   transport-risk proxy, optional bootstrap uncertainty, effective sample
+#'   size under the transport weights, the per-variable covariate-shift table,
+#'   and the source versus transported ATE estimates.
 #' @export
 print.transport_deficiency <- function(x, ...) {
   cli::cli_h1("Transport Diagnostic Analysis")
@@ -387,6 +392,13 @@ print.transport_deficiency <- function(x, ...) {
 #' @param x A transport_deficiency object
 #' @param type Character: type of plot ("shift" or "weights")
 #' @param ... Additional arguments passed to plot
+#'
+#' @return A `ggplot2` object. With `type = "shift"`, the returned plot is a
+#'   horizontal bar chart of `x$covariate_shift`, where bar height is the
+#'   variable-specific shift metric and fill encodes the severity category.
+#'   With `type = "weights"`, the returned plot is a histogram of
+#'   `x$weights` with a reference line at 1 and a subtitle summarizing the
+#'   effective sample size after weighting.
 #' @export
 plot.transport_deficiency <- function(x, type = c("shift", "weights"), ...) {
   type <- match.arg(type)

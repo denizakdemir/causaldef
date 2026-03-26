@@ -11,6 +11,12 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+Invisibly returns \code{x}, unchanged. The printed summary reports the
+transport-risk proxy, optional bootstrap uncertainty, effective sample
+size under the transport weights, the per-variable covariate-shift table,
+and the source versus transported ATE estimates.
+}
 \description{
 Print method for transport_deficiency
 }

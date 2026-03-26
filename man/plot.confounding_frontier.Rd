@@ -16,7 +16,10 @@
 \item{...}{Additional arguments}
 }
 \value{
-A ggplot2 object
+A \code{ggplot2} object visualizing the confounding sensitivity surface
+over the \verb{(alpha, gamma)} grid. \code{type = "heatmap"} returns a tile plot of
+\code{x$grid$delta} with optional contour lines and benchmark points, while
+\code{type = "contour"} returns filled contours of the same surface.
 }
 \description{
 Plot Confounding Frontier

@@ -23,7 +23,29 @@
 #' @param horizon Numeric: time horizon for cumulative incidence
 #' @param estimand Character: "cif" (cumulative incidence) or "cshr" (cause-specific HR)
 #'
-#' @return Object of class c("causal_spec_competing", "causal_spec_survival", "causal_spec")
+#' @return Object of class
+#'   `c("causal_spec_competing", "causal_spec_survival", "causal_spec")`
+#'   containing:
+#'   \itemize{
+#'     \item `data`: the analysis dataset, with the event column normalized to
+#'     integer codes (`0` = censored, `1,2,...` = event types)
+#'     \item `treatment`, `time`, `event`: names of the core analysis variables
+#'     \item `covariates`: adjustment covariates
+#'     \item `event_of_interest`: integer code of the primary event type
+#'     \item `event_types`: observed non-censor event codes
+#'     \item `n_events`: number of distinct non-censor event types
+#'     \item `event_map`: optional mapping from original factor/character labels
+#'     to integer event codes
+#'     \item `event_levels`: original non-censor event labels when the input
+#'     event variable was character or factor
+#'     \item `horizon`: target time horizon for cumulative incidence summaries
+#'     \item `estimand`: requested competing-risks estimand (`"cif"` or `"cshr"`)
+#'     \item `treatment_type`: inferred treatment scale
+#'     \item `n`: retained sample size
+#'     \item `outcome_type`: fixed label `"competing_risks"`
+#'   }
+#'   This object records how the competing-risks problem is encoded and is the
+#'   input consumed by competing-risks deficiency estimation.
 #'
 #' @details
 #' In competing risks, standard survival methods can be biased because:
@@ -219,7 +241,23 @@ causal_spec_competing <- function(data, treatment, time, event,
 #' @param n_boot Integer: bootstrap replicates
 #' @param ci_level Numeric: confidence level
 #'
-#' @return Object of class "deficiency" with competing risks components
+#' @return Object of class `c("deficiency_competing", "deficiency")`
+#'   containing:
+#'   \itemize{
+#'     \item `estimates`: named vector with the competing-risks deficiency proxy
+#'     estimate
+#'     \item `se`: bootstrap standard error for that estimate
+#'     \item `ci`: bootstrap confidence interval matrix
+#'     \item `method`: the competing-risks estimation strategy used
+#'     \item `cif`: weighted and unweighted cumulative-incidence calculations by
+#'     event type
+#'     \item `spec`: the original `causal_spec_competing` object
+#'     \item `kernel`: fitted nuisance quantities used by the estimator,
+#'     including propensity scores and weights
+#'   }
+#'   The reported deficiency summarizes how different the weighted and
+#'   unweighted cumulative-incidence behavior is for the event-of-interest
+#'   analysis under the selected competing-risks approach.
 #'
 #' @export
 estimate_deficiency_competing <- function(spec, 
@@ -423,6 +461,11 @@ estimate_deficiency_competing <- function(spec,
 #' Print method for causal_spec_competing
 #' @param x A causal_spec_competing object
 #' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed output summarizes the
+#'   competing-risks specification: treatment, time and event variables,
+#'   event-of-interest coding, time horizon, estimand, optional event-label
+#'   mapping, covariates, sample size, and the observed event-count breakdown.
 #' @export
 print.causal_spec_competing <- function(x, ...) {
   cli::cli_h1("Competing Risks Causal Specification")

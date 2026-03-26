@@ -14,7 +14,10 @@
 \item{...}{Additional arguments passed to ggplot2 functions}
 }
 \value{
-A ggplot2 object
+A \code{ggplot2} object. With \code{type = "bar"}, the plot shows the
+method-specific deficiency estimates as bars with optional confidence
+intervals and interpretation thresholds. With \code{type = "forest"}, the plot
+shows the same estimates horizontally with optional confidence intervals.
 }
 \description{
 Plot Deficiency Estimates

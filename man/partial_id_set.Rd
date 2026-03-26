@@ -21,7 +21,17 @@ partial_id_set(
 \item{outcome_range}{Numeric vector c(min, max) bounding the outcome.}
 }
 \value{
-List with \code{lower}, \code{upper}, \code{estimate}, and \code{half_width}.
+An object of class \code{"partial_id_set"} containing:
+\itemize{
+\item \code{estimand}: whether the interval applies to a bounded mean or an ATE
+\item \code{estimate}: the supplied point estimate
+\item \code{delta}: the deficiency radius used to widen the estimate
+\item \code{outcome_range}: assumed outcome bounds
+\item \code{half_width}: worst-case expansion implied by \code{delta}
+\item \code{lower}, \code{upper}: conservative identification limits
+}
+The interval describes all values consistent with the supplied estimate and
+the chosen total-variation deficiency radius.
 }
 \description{
 Converts a deficiency radius \eqn{\delta} into a conservative identified interval

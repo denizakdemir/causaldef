@@ -12,7 +12,11 @@
 \item{...}{Additional arguments passed to plot functions}
 }
 \value{
-A plot object (base or ggplot)
+If \code{x} contains a fitted \code{survival::survfit} object, the function is
+called for its side effect of drawing base-R survival curves and returns
+\code{NULL} invisibly. Otherwise it returns a \code{ggplot2} object showing the
+point estimate for \code{x$estimate} and, when available, its confidence
+interval.
 }
 \description{
 Plot Causal Effect

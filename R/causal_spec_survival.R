@@ -21,7 +21,26 @@
 #' @param horizon Numeric: time horizon for RMST (required if estimand = "RMST")
 #' @param na.action Function: how to handle missing values
 #'
-#' @return Object of class "causal_spec_survival"
+#' @return Object of class `c("causal_spec_survival", "causal_spec")`
+#'   containing:
+#'   \itemize{
+#'     \item `data`: the survival analysis dataset after applying `na.action`
+#'     and coercing the event indicators when needed
+#'     \item `treatment`: name of the treatment variable
+#'     \item `time`: name of the follow-up time variable
+#'     \item `event`: name of the primary event indicator
+#'     \item `covariates`: adjustment covariates
+#'     \item `competing_event`: optional competing-event indicator used by
+#'     survival workflows that model it separately
+#'     \item `estimand`: target survival estimand (`"ATE"`, `"RMST"`, or `"HR"`)
+#'     \item `horizon`: RMST horizon when relevant
+#'     \item `treatment_type`: inferred treatment scale
+#'     \item `n`: retained sample size
+#'     \item `n_events`: number of observed primary events
+#'     \item `max_time`: maximum observed follow-up time
+#'   }
+#'   The returned object defines a time-to-event causal problem for downstream
+#'   deficiency estimation and effect estimation.
 #'
 #' @details
 #' For survival outcomes, the deficiency measures how well we can simulate
@@ -173,6 +192,14 @@ causal_spec_survival <- function(data, treatment, time, event,
   spec
 }
 
+#' Print method for causal_spec_survival
+#'
+#' @param x A causal_spec_survival object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns `x`, unchanged. The printed summary reports the
+#'   treatment, follow-up time, event indicator, number of events, covariates,
+#'   sample size, estimand, and any specified horizon or competing event.
 #' @export
 print.causal_spec_survival <- function(x, ...) {
   cat("\n-- Survival Causal Specification ", paste(rep("-", 40), collapse = ""), "\n\n", sep = "")
