@@ -31,7 +31,7 @@
 #' \deqn{\delta \geq \frac{\Delta(a)}{\sqrt{2\pi}\,\sigma_2}\exp\!\left(-\frac{\Delta(a)^2}{2\sigma_2^2}\right)}
 #' where \eqn{\Delta(a) = |a||\alpha\gamma|/(\alpha^2+\sigma_A^2)} and
 #' \eqn{\sigma_2^2 = \gamma^2\sigma_A^2/(\alpha^2+\sigma_A^2) + \sigma_Y^2} - fully
-#' explicit, no unspecified constant. This function computes the exact Le Cam
+#' explicit, no unspecified constant. This function computes the exact
 #' two-point deficiency directly (\eqn{\delta \ge (1/2)\,\mathrm{TV}} between the same
 #' two observationally-indistinguishable parameterizations that theorem's proof
 #' constructs), which is at least as tight as - and was used to verify - that
@@ -255,7 +255,7 @@ confounding_frontier <- function(spec = NULL,
 
 #' Compute Deficiency for Linear Gaussian SCM
 #'
-#' Computes a rigorous Le Cam two-point lower bound for the confounding lower bound
+#' Computes a rigorous two-point lower bound for the confounding lower bound
 #' theorem in the manuscript (`thm:confounding_lb`) in the linear Gaussian setting
 #' (with an implicit normalization \eqn{|a|\le 1}).
 #'
@@ -287,6 +287,6 @@ confounding_frontier <- function(spec = NULL,
     return(NA_real_)
   }
 
-  # Le Cam two-point method: δ ≥ (1/2)·TV.
+  # Two-point method: δ ≥ (1/2)·TV.
   0.5 * tv
 }

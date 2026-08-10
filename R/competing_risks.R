@@ -233,7 +233,7 @@ causal_spec_competing <- function(data, treatment, time, event,
 
 #' Estimate Deficiency for Competing Risks
 #'
-#' Computes Le Cam deficiency for competing risks outcomes using
+#' Computes deficiency for competing risks outcomes using
 #' cause-specific or subdistribution hazard approaches.
 #'
 #' @param spec A causal_spec_competing object

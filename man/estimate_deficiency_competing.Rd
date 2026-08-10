@@ -40,6 +40,6 @@ unweighted cumulative-incidence behavior is for the event-of-interest
 analysis under the selected competing-risks approach.
 }
 \description{
-Computes Le Cam deficiency for competing risks outcomes using
+Computes deficiency for competing risks outcomes using
 cause-specific or subdistribution hazard approaches.
 }

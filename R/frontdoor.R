@@ -44,7 +44,7 @@
 #' (`thm:frontdoor`) implies \eqn{\delta = 0}.
 #'
 #' The current implementation estimates the front-door effect, but the reported
-#' `deficiency_proxy` is \emph{not} an estimator of the exact Le Cam deficiency.
+#' `deficiency_proxy` is \emph{not} an estimator of the exact deficiency.
 #' It is a heuristic discrepancy score meant for exploratory diagnostics.
 #'
 #' @examples

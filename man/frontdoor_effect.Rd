@@ -59,7 +59,7 @@ When these assumptions hold, the manuscript's Front-Door Kernel Existence theore
 (\code{thm:frontdoor}) implies \eqn{\delta = 0}.
 
 The current implementation estimates the front-door effect, but the reported
-\code{deficiency_proxy} is \emph{not} an estimator of the exact Le Cam deficiency.
+\code{deficiency_proxy} is \emph{not} an estimator of the exact deficiency.
 It is a heuristic discrepancy score meant for exploratory diagnostics.
 }
 \examples{

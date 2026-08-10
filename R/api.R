@@ -53,7 +53,7 @@ library(causaldef)
 library(jsonlite)
 
 #* @apiTitle CausalDef API
-#* @apiDescription Decision-theoretic causal diagnostics via Le Cam deficiency
+#* @apiDescription Decision-theoretic causal diagnostics via experiment deficiency
 #* @apiVersion 0.2.0
 #* @apiContact list(name = "CausalDef", url = "https://github.com/denizakdemir/causaldef")
 
@@ -93,7 +93,7 @@ function() {
 # Core Analysis Endpoints
 # =============================================================================
 
-#* Estimate Le Cam deficiency
+#* Estimate deficiency
 #* @param data:object The dataset as JSON array of objects
 #* @param treatment:str Name of treatment variable
 #* @param outcome:str Name of outcome variable
@@ -365,7 +365,7 @@ Then visit: http://localhost:%d/__docs__/
 |--------|----------|-------------|
 | GET | /health | Health check |
 | GET | /methods | List available methods |
-| POST | /deficiency | Estimate Le Cam deficiency |
+| POST | /deficiency | Estimate deficiency |
 | POST | /policy-bound | Calculate policy regret bound |
 | POST | /frontier | Generate confounding frontier |
 | POST | /transport | Transport effects to new population |

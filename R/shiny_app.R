@@ -86,7 +86,7 @@ run_causaldef_app <- function(data = NULL, port = 3838, launch.browser = TRUE) {
         shiny::tabsetPanel(
           shiny::tabPanel(
             "Deficiency",
-            shiny::h3("Le Cam Deficiency Estimates"),
+            shiny::h3("Deficiency Estimates"),
             shiny::plotOutput("deficiency_plot", height = "400px"),
             shiny::verbatimTextOutput("deficiency_summary")
           ),

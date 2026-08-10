@@ -45,7 +45,7 @@ rkhs_rate_bound <- function(n, beta, d_w, eta, xi = 0.05) {
 #' @param utility_range Numeric vector c(min, max) of utility bounds.
 #' @param obs_regret Optional observed regret under the observational regime.
 #' @param delta_mode Passed through to `policy_regret_bound()` when `deficiency` is an object.
-#' @param C Universal constant in the bound (default 2).
+#' @param C Constant multiplying the VC-complexity penalty (default 2; not derived from first principles here).
 #'
 #' @return An object of class `policy_bound` with additional field `complexity_penalty`.
 #' @export
@@ -151,7 +151,7 @@ sharp_lower_bound <- function(alpha,
   checkmate::assert_number(sigma_Y, lower = 0)
 
   # Reuse the package's exact two-point TV computation (confounding_frontier).
-  # .deficiency_gaussian returns (1/2)*TV between two do-laws in the Le Cam pair,
+  # .deficiency_gaussian returns (1/2)*TV between two do-laws in the two-point pair,
   # which is both a lower bound and (by midpoint kernel) an upper bound for the
   # two-point subexperiment.
   delta <- .deficiency_gaussian(alpha = alpha, gamma = gamma, sigma_A = sigma_A, sigma_Y = sigma_Y)

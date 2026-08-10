@@ -46,7 +46,7 @@ be false for large \eqn{\sigma_A}) now states:
 \deqn{\delta \geq \frac{\Delta(a)}{\sqrt{2\pi}\,\sigma_2}\exp\!\left(-\frac{\Delta(a)^2}{2\sigma_2^2}\right)}
 where \eqn{\Delta(a) = |a||\alpha\gamma|/(\alpha^2+\sigma_A^2)} and
 \eqn{\sigma_2^2 = \gamma^2\sigma_A^2/(\alpha^2+\sigma_A^2) + \sigma_Y^2} - fully
-explicit, no unspecified constant. This function computes the exact Le Cam
+explicit, no unspecified constant. This function computes the exact
 two-point deficiency directly (\eqn{\delta \ge (1/2)\,\mathrm{TV}} between the same
 two observationally-indistinguishable parameterizations that theorem's proof
 constructs), which is at least as tight as - and was used to verify - that

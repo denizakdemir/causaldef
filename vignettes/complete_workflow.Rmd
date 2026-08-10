@@ -33,7 +33,7 @@ fmt_num <- function(x, digits = 3) {
 ## Overview
 
 This vignette demonstrates the complete **causaldef** workflow, from data 
-specification through to policy decision-making. We show how Le Cam deficiency 
+specification through to policy decision-making. We show how deficiency 
 theory translates abstract statistical concepts into actionable clinical 
 insights.
 

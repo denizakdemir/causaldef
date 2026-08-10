@@ -88,7 +88,7 @@ new_causal_spec_survival <- function(data, treatment, time, event,
 }
 
 # =============================================================================
-# Class: deficiency - Le Cam deficiency estimates
+# Class: deficiency - deficiency estimates
 # =============================================================================
 
 #' @title Create a New Deficiency Object

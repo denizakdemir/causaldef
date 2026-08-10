@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 [![CRAN status](https://www.r-pkg.org/badges/version/causaldef)](https://CRAN.R-project.org/package=causaldef)
 <!-- badges: end -->
 
-**causaldef** implements Le Cam deficiency theory for causal inference, providing quantitative bounds on information loss from confounding, selection bias, and distributional shift.
+**causaldef** implements a deficiency-theoretic framework for causal inference, grounded in the classical theory of statistical experiment comparison, providing quantitative bounds on information loss from confounding, selection bias, and distributional shift.
 
 Unlike traditional sensitivity analysis which focuses on "how much bias" exists, `causaldef` answers the decision-theoretic question: **"how much regret"** might we incur by acting on this evidence?
 
@@ -41,7 +41,7 @@ For bounded utilities with range \(M\) (max minus min), the manuscript provides:
 `causaldef` is theory-forward, but not every exported quantity is the same kind of object. The package distinguishes:
 
 - **Theorem-backed quantities**: closed-form or theorem-aligned utilities such as `policy_regret_bound()`, `policy_regret_bound_vc()`, `confounding_frontier()`, `sharp_lower_bound()`, and `wasserstein_deficiency_gaussian()`
-- **Computable deficiency proxies**: `estimate_deficiency()` currently returns a PS-TV proxy, not a generic nonparametric estimator of the exact Le Cam deficiency
+- **Computable deficiency proxies**: `estimate_deficiency()` currently returns a PS-TV proxy, not a generic nonparametric estimator of the exact deficiency
 - **Sensitivity diagnostics**: `nc_diagnostic()` combines an observable residual-association diagnostic with a user-supplied alignment parameter `kappa`
 - **Experimental heuristics**: some specialized modules expose effect estimates together with heuristic proxy scores; those help with exploration, but they should not be read as exact deficiency estimators unless stated explicitly
 
@@ -175,7 +175,7 @@ Where $M$ is the range of the utility function. In practice, the package often p
 
 ```bibtex
 @misc{causaldef,
-  title = {causaldef: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency},
+  title = {causaldef: Decision-Theoretic Causal Diagnostics via Experiment Deficiency},
   author = {Akdemir, Deniz},
   year = {2026},
   doi = {10.5281/zenodo.18367347}

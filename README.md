@@ -11,9 +11,10 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 status](https://www.r-pkg.org/badges/version/causaldef)](https://CRAN.R-project.org/package=causaldef)
 <!-- badges: end -->
 
-**causaldef** implements Le Cam deficiency theory for causal inference,
-providing quantitative bounds on information loss from confounding,
-selection bias, and distributional shift.
+**causaldef** implements a deficiency-theoretic framework for causal
+inference, grounded in the classical theory of statistical experiment
+comparison, providing quantitative bounds on information loss from
+confounding, selection bias, and distributional shift.
 
 Unlike traditional sensitivity analysis which focuses on “how much bias”
 exists, `causaldef` answers the decision-theoretic question: **“how much
@@ -23,22 +24,16 @@ regret”** might we incur by acting on this evidence?
 
 The **deficiency** δ is a theoretical measure of the information gap
 between your observational data and a perfect randomized trial. In
-practice, `causaldef` provides a **computable proxy**
-![\\widehat{\\delta}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D
-"\\widehat{\\delta}") based on propensity-score TV balance (PS-TV),
-which is informative about overlap/positivity and residual confounding
-risk.
+practice, `causaldef` provides a **computable proxy** $\widehat{\delta}$
+based on propensity-score TV balance (PS-TV), which is informative about
+overlap/positivity and residual confounding risk.
 
-For bounded utilities with range
-![M](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M
-"M") (max minus min), the manuscript provides:
+For bounded utilities with range $M$ (max minus min), the manuscript
+provides:
 
-  - a **regret transfer penalty** (upper bound term) of ![M\\cdot
-    \\delta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M%5Ccdot%20%5Cdelta
-    "M\\cdot \\delta"), and
-  - a minimax **safety floor** (lower bound) of ![(M/2)\\cdot
-    \\delta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%28M%2F2%29%5Ccdot%20%5Cdelta
-    "(M/2)\\cdot \\delta").
+- a **regret transfer penalty** (upper bound term) of $M\cdot \delta$,
+  and
+- a minimax **safety floor** (lower bound) of $(M/2)\cdot \delta$.
 
 `policy_regret_bound()` reports both quantities.
 
@@ -47,20 +42,20 @@ For bounded utilities with range
 `causaldef` is theory-forward, but not every exported quantity is the
 same kind of object. The package distinguishes:
 
-  - **Theorem-backed quantities**: closed-form or theorem-aligned
-    utilities such as `policy_regret_bound()`,
-    `policy_regret_bound_vc()`, `confounding_frontier()`,
-    `sharp_lower_bound()`, and `wasserstein_deficiency_gaussian()`
-  - **Computable deficiency proxies**: `estimate_deficiency()` currently
-    returns a PS-TV proxy, not a generic nonparametric estimator of the
-    exact Le Cam deficiency
-  - **Sensitivity diagnostics**: `nc_diagnostic()` combines an
-    observable residual-association diagnostic with a user-supplied
-    alignment parameter `kappa`
-  - **Experimental heuristics**: some specialized modules expose effect
-    estimates together with heuristic proxy scores; those help with
-    exploration, but they should not be read as exact deficiency
-    estimators unless stated explicitly
+- **Theorem-backed quantities**: closed-form or theorem-aligned
+  utilities such as `policy_regret_bound()`, `policy_regret_bound_vc()`,
+  `confounding_frontier()`, `sharp_lower_bound()`, and
+  `wasserstein_deficiency_gaussian()`
+- **Computable deficiency proxies**: `estimate_deficiency()` currently
+  returns a PS-TV proxy, not a generic nonparametric estimator of the
+  exact deficiency
+- **Sensitivity diagnostics**: `nc_diagnostic()` combines an observable
+  residual-association diagnostic with a user-supplied alignment
+  parameter `kappa`
+- **Experimental heuristics**: some specialized modules expose effect
+  estimates together with heuristic proxy scores; those help with
+  exploration, but they should not be read as exact deficiency
+  estimators unless stated explicitly
 
 ## Installation
 
@@ -74,16 +69,16 @@ devtools::install_github("denizakdemir/causaldef")
 
 ## Core Features
 
-  - **Deficiency proxies:** `estimate_deficiency()` (PS-TV
-    overlap/balance proxy)
-  - **Policy regret bounds:** `policy_regret_bound()` (transfer penalty
-    + minimax floor)
-  - **Negative control diagnostics:** `nc_diagnostic()` (falsification
-    and bounds)
-  - **Sensitivity analysis:** `confounding_frontier()` (linear-Gaussian
-    confounding frontier)
-  - **Survival + competing risks:** `causal_spec_survival()`,
-    `causal_spec_competing()`
+- **Deficiency proxies:** `estimate_deficiency()` (PS-TV overlap/balance
+  proxy)
+- **Policy regret bounds:** `policy_regret_bound()` (transfer penalty +
+  minimax floor)
+- **Negative control diagnostics:** `nc_diagnostic()` (falsification and
+  bounds)
+- **Sensitivity analysis:** `confounding_frontier()` (linear-Gaussian
+  confounding frontier)
+- **Survival + competing risks:** `causal_spec_survival()`,
+  `causal_spec_competing()`
 
 ## Example 1: Basic Deficiency Estimation
 
@@ -127,15 +122,11 @@ print(results)
 #>        aipw 0.0212 0.0087 [0.0154, 0.0483]  Excellent (Green)
 #> Note: delta is a propensity-score TV proxy (overlap/balance diagnostic).
 #> 
-#> Best method: iptw (delta = 0.0212 )
+#> Best method: aipw (delta = 0.0212 )
 ```
 
-**Interpretation:** Unadjusted ![\\widehat{\\delta}
-\\approx](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D%20%5Capprox
-"\\widehat{\\delta} \\approx") 0.119; after IPTW/AIPW,
-![\\widehat{\\delta}
-\\approx](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D%20%5Capprox
-"\\widehat{\\delta} \\approx") 0.021.
+**Interpretation:** Unadjusted $\widehat{\delta} \approx$ 0.119; after
+IPTW/AIPW, $\widehat{\delta} \approx$ 0.021.
 
 ## Example 2: Policy Regret Bounds
 
@@ -165,7 +156,7 @@ print(bounds)
 plot(bounds, type = "safety_curve")
 ```
 
-<img src="man/figures/README-regret-1.png" alt="" width="100%" />
+<img src="man/figures/README-regret-1.png" width="100%" />
 
 The plug-in transfer penalty is 0.0212 on a 0–1 utility scale; the
 minimax safety floor is 0.0106.
@@ -173,9 +164,7 @@ minimax safety floor is 0.0106.
 ## Example 3: Negative Control Diagnostic
 
 Check if the “Adjusted” strategy actually removes confounding using a
-negative control outcome
-![Y\_{nc}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;Y_%7Bnc%7D
-"Y_{nc}") (known to be unaffected by treatment).
+negative control outcome $Y_{nc}$ (known to be unaffected by treatment).
 
 ``` r
 # Add a negative control to simulation
@@ -211,9 +200,7 @@ print(nc_test)
 
 Here, the screen does not reject (p = 0.91), but that is not proof that
 confounding is absent; the observable proxy is
-![\\widehat{\\delta}\_{NC}
-\\approx](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D_%7BNC%7D%20%5Capprox
-"\\widehat{\\delta}_{NC} \\approx") 0.009.
+$\widehat{\delta}_{NC} \approx$ 0.009.
 
 ## Example 4: Survival Analysis (HCT)
 
@@ -280,30 +267,21 @@ scale. For full relapse-versus-death analyses, use
 Based on Akdemir (2026), [“Constraints on Causal Inference as Experiment
 Comparison”](https://doi.org/10.5281/zenodo.18367347).
 
-The core theorem links the deficiency
-![\\delta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cdelta
-"\\delta") (Total Variation distance) to the max-min regret:
+The core theorem links the deficiency $\delta$ (Total Variation
+distance) to the max-min regret:
 
-  
-![ \\text{Regret}\_{do}(\\pi) \\leq \\text{Regret}\_{obs}(\\pi) + M
-\\cdot \\delta
-](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%20%5Ctext%7BRegret%7D_%7Bdo%7D%28%5Cpi%29%20%5Cleq%20%5Ctext%7BRegret%7D_%7Bobs%7D%28%5Cpi%29%20%2B%20M%20%5Ccdot%20%5Cdelta%20
-" \\text{Regret}_{do}(\\pi) \\leq \\text{Regret}_{obs}(\\pi) + M \\cdot \\delta ")  
+$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M \cdot \delta $$
 
-Where
-![M](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M
-"M") is the range of the utility function. In practice, the package
+Where $M$ is the range of the utility function. In practice, the package
 often provides plug-in bounds by feeding a computable proxy/estimate
-(e.g.,
-![\\widehat{\\delta}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cwidehat%7B%5Cdelta%7D
-"\\widehat{\\delta}")) into the regret formula, so the interpretation
-should track the underlying quantity being supplied.
+(e.g., $\widehat{\delta}$) into the regret formula, so the
+interpretation should track the underlying quantity being supplied.
 
 ## Citation
 
 ``` bibtex
 @misc{causaldef,
-  title = {causaldef: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency},
+  title = {causaldef: Decision-Theoretic Causal Diagnostics via Experiment Deficiency},
   author = {Akdemir, Deniz},
   year = {2026},
   doi = {10.5281/zenodo.18367347}

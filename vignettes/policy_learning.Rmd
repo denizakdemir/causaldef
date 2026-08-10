@@ -32,7 +32,7 @@ where:
 - $\text{Regret}_{do}(\pi)$ = regret under the true interventional distribution
 - $\text{Regret}_{obs}(\pi)$ = regret observed in data
 - $M$ = utility range (max - min possible outcomes)
-- $\delta$ = Le Cam deficiency (quantifies confounding)
+- $\delta$ = deficiency (quantifies confounding)
 
 ## The Safety Floor Concept
 

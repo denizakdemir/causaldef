@@ -4,7 +4,7 @@
 
 #' Estimate a Deficiency Proxy (PS-TV)
 #'
-#' Computes a \emph{computable proxy} for the (population) Le Cam deficiency between
+#' Computes a \emph{computable proxy} for the (population) deficiency between
 #' observational and interventional regimes under various adjustment strategies.
 #'
 #' @param spec A causal_spec object
@@ -35,7 +35,7 @@
 #'   }
 #'
 #' @details
-#' The (population) Le Cam deficiency is defined as:
+#' The (population) deficiency is defined as:
 #' \deqn{\delta(\mathcal{E}_{obs}, \mathcal{E}_{do}) =
 #'       \inf_K \sup_\theta ||KP^{obs}_\theta - P^{do}_\theta||_{TV}}
 #'
@@ -49,7 +49,7 @@
 #' This PS-TV proxy is an overlap/balance diagnostic: values near 0 indicate near-perfect
 #' balance under the estimated propensity model, while large values flag positivity/overlap issues.
 #'
-#' Importantly, this is a \emph{proxy} and should not be interpreted as the exact Le Cam deficiency
+#' Importantly, this is a \emph{proxy} and should not be interpreted as the exact deficiency
 #' unless supplemented by a result linking the proxy to the specific decision class of interest.
 #'
 #' @examples

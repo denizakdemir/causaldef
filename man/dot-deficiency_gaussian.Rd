@@ -19,7 +19,7 @@
 Numeric: deficiency lower bound
 }
 \description{
-Computes a rigorous Le Cam two-point lower bound for the confounding lower bound
+Computes a rigorous two-point lower bound for the confounding lower bound
 theorem in the manuscript (\code{thm:confounding_lb}) in the linear Gaussian setting
 (with an implicit normalization \eqn{|a|\le 1}).
 }

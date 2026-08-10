@@ -30,7 +30,7 @@ policy_regret_bound_vc(
 
 \item{delta_mode}{Passed through to \code{policy_regret_bound()} when \code{deficiency} is an object.}
 
-\item{C}{Universal constant in the bound (default 2).}
+\item{C}{Constant multiplying the VC-complexity penalty (default 2; not derived from first principles here).}
 }
 \value{
 An object of class \code{policy_bound} with additional field \code{complexity_penalty}.

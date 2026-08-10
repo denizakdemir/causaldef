@@ -75,7 +75,7 @@ This is not just about bias—this is calculating the safety price for your deci
 
 ### The Core Theory: Markov Kernels in Plain English
 
-Formally, we use **Le Cam's theory of statistical experiments** (Akdemir 2026). We seek a Markov Kernel $K$ such that:
+Formally, we use **the theory of statistical experiment comparison** (Akdemir 2026). We seek a Markov Kernel $K$ such that:
 
 $$ P_{do} \approx K P_{obs} $$
 
@@ -92,7 +92,7 @@ If you get $\delta$ wrong, you need to know how much regret you're signing up fo
 
 # Theory Overview: The Car and Destination Analogy
 
-To bridge the gap between Le Cam's abstract theory and your practical decision, use this analogy:
+To bridge the gap between this abstract theory and your practical decision, use this analogy:
 
 | Concept | Analogy |
 |---------|---------|
@@ -254,7 +254,7 @@ $$ \text{Transfer Penalty} = M\delta,\qquad \text{Minimax Safety Floor} = (M/2)\
 Where:
 
 *   $M$ = Stakes (difference between best and worst financial/clinical outcome).
-*   $\delta$ = Le Cam deficiency (distance to RCT).
+*   $\delta$ = deficiency (distance to RCT).
 
 ```{r regret}
 # Utility range: [0, 10] outcome units

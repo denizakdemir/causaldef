@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-**causaldef** implements Le Cam deficiency theory to provide decision-theoretic diagnostics for causal inference.
+**causaldef** implements a deficiency-theoretic framework to provide decision-theoretic diagnostics for causal inference.
 
 Unlike standard sensitivity analysis tools that output abstract bias parameters (like E-values or partial R²), `causaldef` quantifies the **information gap** ($\delta$) between the data you have throughout your observational study and the data you *wish* you had (a perfect randomized trial).
 

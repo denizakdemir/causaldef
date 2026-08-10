@@ -1,6 +1,6 @@
-#' causaldef: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency
+#' causaldef: Decision-Theoretic Causal Diagnostics via Experiment Deficiency
 #'
-#' Theory-forward causal diagnostics organized around Le Cam deficiency.
+#' Theory-forward causal diagnostics organized around experiment deficiency.
 #'
 #' The package centers causal inference around the question: how much information
 #' separates the observational study at hand from the interventional experiment we
@@ -15,7 +15,7 @@
 #'   [sharp_lower_bound()], and [wasserstein_deficiency_gaussian()].
 #'   \item \strong{Computable deficiency proxies}: [estimate_deficiency()] currently returns
 #'   a propensity-score total-variation proxy (`metric = "ps_tv"`), not a generic
-#'   nonparametric estimator of the exact Le Cam deficiency.
+#'   nonparametric estimator of the exact deficiency.
 #'   \item \strong{Sensitivity diagnostics}: functions such as [nc_diagnostic()] combine
 #'   observable diagnostics with user-supplied sensitivity parameters.
 #'   \item \strong{Experimental heuristics}: some modules currently expose effect estimates

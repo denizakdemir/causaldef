@@ -29,7 +29,7 @@ Several frameworks exist:
 |-----------|------------|----------------|
 | **E-value** | Risk ratio needed | "Unmeasured confounder must have RR = X" |
 | **Partial R²** | Variance explained | "Confounder must explain X% of variance" |
-| **Le Cam Deficiency (δ)** | Information loss | "Transfer penalty bounded by $M\delta$" |
+| **Deficiency (δ)** | Information loss | "Transfer penalty bounded by $M\delta$" |
 
 This vignette shows how **deficiency-based sensitivity analysis** relates to 
 and extends traditional approaches.

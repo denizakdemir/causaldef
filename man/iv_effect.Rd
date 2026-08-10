@@ -60,7 +60,7 @@ for compliers when:
 Weak instruments (small first-stage F-statistics) lead to unstable IV inference.
 The current implementation reports a \code{deficiency_proxy} derived from instrument
 strength; it should be interpreted as a screening diagnostic rather than an exact
-Le Cam deficiency.
+deficiency.
 }
 \examples{
 # Simulate IV setting

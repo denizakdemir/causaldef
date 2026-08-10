@@ -1,6 +1,6 @@
 Package: causaldef
 Type: Package
-Title: Decision-Theoretic Causal Diagnostics via Le Cam Deficiency
+Title: Decision-Theoretic Causal Diagnostics via Experiment Deficiency
 Version: 0.2.0
 Authors@R: 
     person(given = "Deniz",
@@ -9,7 +9,8 @@ Authors@R:
            email = "deniz.akdemir.work@gmail.com")
 Author: Deniz Akdemir [aut, cre]
 Maintainer: Deniz Akdemir <deniz.akdemir.work@gmail.com>
-Description: Implements Le Cam deficiency theory for causal inference,
+Description: Implements a deficiency-theoretic framework for causal inference,
+    grounded in the classical theory of statistical experiment comparison,
     as described in Akdemir (2026) <doi:10.5281/zenodo.18367347>. Provides
     theorem-backed bounds together with computable proxy diagnostics for
     information loss from confounding, selection bias, and distributional
