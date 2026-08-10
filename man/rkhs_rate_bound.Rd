@@ -18,7 +18,7 @@ rkhs_rate_bound(n, beta, d_w, eta, xi = 0.05)
 \item{xi}{Failure probability (\eqn{\xi\in(0,1)}).}
 }
 \value{
-Numeric rate bound (up to universal constants).
+Numeric rate bound (an O(.) rate; the implicit constant is not pinned down here).
 }
 \description{
 Computes the explicit rate bound stated in Result 1 (finite-sample RKHS rate).

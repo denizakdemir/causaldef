@@ -12,7 +12,7 @@
 #' @param eta Positivity constant (\eqn{\eta>0}) such that \eqn{P(A=a|W=w) \ge \eta}.
 #' @param xi Failure probability (\eqn{\xi\in(0,1)}).
 #'
-#' @return Numeric rate bound (up to universal constants).
+#' @return Numeric rate bound (an O(.) rate; the implicit constant is not pinned down here).
 #' @export
 rkhs_rate_bound <- function(n, beta, d_w, eta, xi = 0.05) {
   checkmate::assert_integerish(n, lower = 1)

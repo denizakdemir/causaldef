@@ -40,12 +40,17 @@ for linear Gaussian models.
 For the linear Gaussian structural causal model:
 \deqn{U \sim N(0,1), \quad A = \alpha U + \varepsilon_A, \quad Y = \beta A + \gamma U + \varepsilon_Y}
 
-The manuscript's Confounding Lower Bound theorem (\code{thm:confounding_lb}) states the scaling of the causal deficiency:
-\deqn{\delta \geq C \frac{|\alpha\gamma|}{\sqrt{(1 + \alpha^2/\sigma_A^2)(1 + \gamma^2/\sigma_Y^2)}}}
-for some universal constant \eqn{C>0} (typically after rescaling so \eqn{|a|\le 1}).
-This function computes a concrete, rigorous lower bound using the underlying
-Le Cam two-point construction (i.e., \eqn{\delta \ge (1/2)\,\mathrm{TV}} between two
-observationally indistinguishable parameterizations).
+The manuscript's Confounding Lower Bound theorem (\code{thm:confounding_lb}, corrected
+2026-08-09 - the original stated form used an unverified constant and was found to
+be false for large \eqn{\sigma_A}) now states:
+\deqn{\delta \geq \frac{\Delta(a)}{\sqrt{2\pi}\,\sigma_2}\exp\!\left(-\frac{\Delta(a)^2}{2\sigma_2^2}\right)}
+where \eqn{\Delta(a) = |a||\alpha\gamma|/(\alpha^2+\sigma_A^2)} and
+\eqn{\sigma_2^2 = \gamma^2\sigma_A^2/(\alpha^2+\sigma_A^2) + \sigma_Y^2} - fully
+explicit, no unspecified constant. This function computes the exact Le Cam
+two-point deficiency directly (\eqn{\delta \ge (1/2)\,\mathrm{TV}} between the same
+two observationally-indistinguishable parameterizations that theorem's proof
+constructs), which is at least as tight as - and was used to verify - that
+closed-form bound.
 
 This creates a "confounding frontier" - the boundary where identification
 transitions from possible (\eqn{\delta=0}) to impossible (\eqn{\delta>0}).
