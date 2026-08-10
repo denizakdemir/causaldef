@@ -10,7 +10,7 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
-eval_surv <- getRversion() >= "4.0.0" && requireNamespace("survival", quietly = TRUE)
+eval_surv_effect <- getRversion() >= "4.0.0" && requireNamespace("survival", quietly = TRUE)
 
 knitr::opts_chunk$set(
     collapse = TRUE,
@@ -23,6 +23,10 @@ if (!exists("deparse1", envir = baseenv())) {
   deparse1 <- function(expr, collapse = " ", width.cutoff = 500L, ...) {
     paste(deparse(expr, width.cutoff, ...), collapse = collapse)
   }
+}
+
+fmt_num <- function(x, digits = 3) {
+  formatC(x, digits = digits, format = "f")
 }
 ```
 
@@ -114,10 +118,7 @@ print(deficiency_gene)
 
 **Interpretation:**
 
-- **δ ≈ 0**: The adjustment creates a "synthetic RCT" (observational data 
-  approximates what we'd see if knockout were randomized)
-- **δ > 0.1**: Substantial distributional mismatch remains; causal conclusions 
-  are uncertain
+In this run, the unadjusted PS-TV proxy is about `r fmt_num(deficiency_gene$estimates["unadjusted"])`, while IPTW and AIPW reduce it to about `r fmt_num(deficiency_gene$estimates["iptw"])`. That is a substantial reduction in the observational-to-interventional gap, but it should still be interpreted through the downstream regret bounds rather than as literal proof of randomized equivalence.
 
 ```{r plot-gene, fig.height=4}
 plot(deficiency_gene, type = "bar")
@@ -129,6 +130,7 @@ The negative control diagnostic tests whether our adjustment removes ALL
 confounding, not just the measured confounders.
 
 ```{r nc-gene}
+set.seed(123)
 nc_test <- nc_diagnostic(
     spec_gene,
     method = "iptw",
@@ -143,8 +145,8 @@ print(nc_test)
 
 | Result | Interpretation | Action |
 |--------|----------------|--------|
-| `falsified = FALSE` | No evidence of residual confounding | Proceed with analysis |
-| `falsified = TRUE` | Residual confounding detected | Add covariates or acknowledge limitations |
+| `falsified = FALSE` | The screen does not find strong evidence against the current adjustment, but this is not proof that all confounding is gone | Proceed with explicit uncertainty qualification |
+| `falsified = TRUE` | Residual confounding is detected by the screen | Add covariates, reconsider the design, or report the limitation |
 
 ### 1.5 Step 4: Policy Decision
 
@@ -170,8 +172,8 @@ print(bounds_gene)
 - **Minimax safety floor** \((M/2)\cdot\delta\): irreducible worst-case regret when \(\delta>0\).
 
 **Decision Rule:**
-- If `transfer_penalty` < acceptable risk threshold → **Proceed with confidence**
-- If `transfer_penalty` > acceptable risk threshold → **Seek more evidence**
+- If `transfer_penalty` is small relative to the practical stakes of the decision → the observational evidence may be usable with caveats
+- If `transfer_penalty` is large relative to those stakes → seek more evidence or narrow the decision scope
 
 ### 1.6 Effect Estimation
 
@@ -189,13 +191,21 @@ print(effect_gene)
 **Complete Report:**
 
 ```{r report-gene, results='asis'}
+conclusion_gene <- if (nc_test$falsified) {
+    "Residual confounding was detected by the negative control screen. Treat the effect estimate as exploratory."
+} else if (bounds_gene$transfer_penalty < 0.5) {
+    "Adjustment reduced the proxy gap substantially and the negative control did not falsify the analysis, but residual uncertainty remains."
+} else {
+    "Adjustment improved balance, but the remaining proxy gap is still material on the chosen utility scale."
+}
+
 cat(sprintf(
     "
 ## Gene Perturbation Analysis Report
 
 **Treatment Effect (IPTW-adjusted):** %.2f log2 expression units
 **Deficiency (δ):** %.3f
-**Negative Control Test:** %s (p = %.3f)
+**Negative Control Screen:** %s (p = %.3f; delta_NC = %.3f)
 **Transfer Penalty:** %.3f on [0, 10] scale
 **Minimax Safety Floor:** %.3f on [0, 10] scale
 
@@ -203,17 +213,12 @@ cat(sprintf(
 ",
     effect_gene$estimate,
     deficiency_gene$estimates["iptw"],
-    ifelse(nc_test$falsified, "FAILED", "PASSED"),
+    ifelse(nc_test$falsified, "Falsified", "Not falsified"),
     nc_test$p_value,
+    nc_test$delta_nc,
     bounds_gene$transfer_penalty,
     bounds_gene$minimax_floor,
-    ifelse(nc_test$falsified,
-        "Residual confounding detected. Interpret with caution.",
-        ifelse(bounds_gene$transfer_penalty < 0.5,
-            "Strong evidence supporting treatment effect.",
-            "Moderate evidence; consider additional validation."
-        )
-    )
+    conclusion_gene
 ))
 ```
 
@@ -239,25 +244,24 @@ table(hct_outcomes$conditioning_intensity, hct_outcomes$event_status)
 
 - **Myeloablative conditioning**: High-intensity chemotherapy (younger, healthier patients)
 - **Reduced-intensity conditioning**: Lower dose (older, sicker patients)
-- **Outcome**: Time to death or relapse
+- **Outcome in this vignette**: 24-month restricted mean survival using death as the binary event
 
 The key challenge is **confounding by indication**: doctors assign treatment 
 based on patient status, making naive comparisons biased.
 
 ### 2.2 Step 1: Survival Specification
 
-Executable survival-effect code in this section requires a compatible
-`survival` runtime. In the current support matrix, that means `R >= 4.0`.
+The deficiency, sensitivity, and regret-bound calculations in this section run on all supported runtimes. The final RMST effect-estimation chunk requires a compatible `survival` runtime, which in the current support matrix means `R >= 4.0`.
 
-```{r spec-hct, eval = eval_surv}
-# Create binary event indicator
-hct_outcomes$event <- ifelse(hct_outcomes$event_status != "Censored", 1, 0)
+```{r spec-hct}
+# Create binary event indicator for death
+hct_outcomes$event_death <- as.integer(as.character(hct_outcomes$event_status) == "Death")
 
 spec_hct <- causal_spec_survival(
     data = hct_outcomes,
     treatment = "conditioning_intensity",
     time = "time_to_event",
-    event = "event",
+    event = "event_death",
     covariates = c("age", "disease_status", "kps", "donor_type"),
     estimand = "RMST",
     horizon = 24 # 24-month restricted mean survival time
@@ -266,9 +270,11 @@ spec_hct <- causal_spec_survival(
 print(spec_hct)
 ```
 
+For a full competing-risks analysis of relapse versus death, prefer `causal_spec_competing()` together with `estimate_deficiency_competing()`. Here we keep the workflow aligned with the current reproducible death-endpoint survival interface.
+
 ### 2.3 Step 2: Deficiency Estimation
 
-```{r estim-hct, eval = eval_surv}
+```{r estim-hct}
 deficiency_hct <- estimate_deficiency(
     spec_hct,
     methods = c("unadjusted", "iptw"),
@@ -281,17 +287,14 @@ print(deficiency_hct)
 **Clinical Interpretation:**
 
 The deficiency tells us how much our observational evidence differs from 
-what an RCT would provide:
-
-- **Unadjusted δ**: High, reflecting strong selection bias (young patients → myeloablative)
-- **IPTW δ**: Lower, IPTW reweights to balance baseline covariates
+what an RCT would provide. In this run, the unadjusted proxy is about `r fmt_num(deficiency_hct$estimates["unadjusted"])`, while IPTW reduces it to about `r fmt_num(deficiency_hct$estimates["iptw"])`. That is a meaningful improvement, but the remaining gap is still large enough to matter on a 24-month clinical utility scale.
 
 ### 2.4 Step 3: Confounding Frontier
 
 Beyond point estimates, we can map a *sensitivity analysis* showing how 
 deficiency varies with hypothetical unmeasured confounding:
 
-```{r frontier-hct, fig.height=5, eval = eval_surv}
+```{r frontier-hct, fig.height=5}
 frontier <- confounding_frontier(
     spec_hct,
     alpha_range = c(-2, 2), # Confounding path: U → Treatment
@@ -314,7 +317,7 @@ benchmarks) to substantially increase δ, conclusions are robust.
 
 ### 2.5 Step 4: Policy Regret and RMST Effect
 
-```{r policy-hct, eval = eval_surv}
+```{r policy-hct}
 # Utility = months of survival (horizon = 24)
 bounds_hct <- policy_regret_bound(
     deficiency_hct,
@@ -326,15 +329,9 @@ print(bounds_hct)
 
 **Clinical Regret Bounds:**
 
-If δ = 0.05 with M = 24 months:
-- Transfer penalty = 24 × 0.05 = **1.2 months**
-- Minimax safety floor = 0.5 × 24 × 0.05 = **0.6 months**
+In the current example, the IPTW proxy implies a transfer penalty of about `r fmt_num(bounds_hct$transfer_penalty, 2)` months and a minimax safety floor of about `r fmt_num(bounds_hct$minimax_floor, 2)` months on the 0--24 month utility scale. That means the residual observational-to-interventional gap is materially improved relative to the unadjusted analysis, but still not negligible for treatment decisions.
 
-This means even with perfect decision-making, the observational evidence 
-can inflate regret by up to about 1.2 months on the 0--24 month utility scale, and
-there is an unavoidable worst-case floor of about 0.6 months when $\delta>0$.
-
-```{r effect-hct, eval = eval_surv}
+```{r effect-hct, eval = eval_surv_effect}
 # Estimate RMST difference
 effect_hct <- estimate_effect(
     deficiency_hct,
@@ -345,29 +342,33 @@ effect_hct <- estimate_effect(
 print(effect_hct)
 ```
 
+```{r effect-hct-note, results='asis', eval = !eval_surv_effect}
+cat("Effect-estimation chunks are skipped on runtimes without the required survival support. The deficiency, frontier, and regret-bound calculations above still provide the main observational-versus-interventional diagnostics for this example.")
+```
+
 ### 2.6 Complete Decision Framework
 
-```{r decision-hct, results='asis', eval = eval_surv}
+```{r decision-hct, results='asis', eval = eval_surv_effect}
 delta_iptw <- deficiency_hct$estimates["iptw"]
 transfer_penalty <- bounds_hct$transfer_penalty
 minimax_floor <- bounds_hct$minimax_floor
 rmst_diff <- effect_hct$estimate
 
 # Decision logic
-if (delta_iptw < 0.05) {
-    evidence_quality <- "HIGH (approximates RCT)"
-} else if (delta_iptw < 0.15) {
-    evidence_quality <- "MODERATE (acceptable with caveats)"
+if (transfer_penalty < 1) {
+    evidence_quality <- "LOW residual decision risk"
+} else if (transfer_penalty < 2) {
+    evidence_quality <- "MODERATE residual decision risk"
 } else {
-    evidence_quality <- "LOW (substantial bias risk)"
+    evidence_quality <- "HIGH residual decision risk"
 }
 
 # Benefit-to-risk ratio
 if (!is.na(rmst_diff) && !is.na(transfer_penalty) && transfer_penalty > 0) {
     benefit_to_risk <- abs(rmst_diff) / transfer_penalty
     recommendation <- ifelse(benefit_to_risk > 2,
-        "Recommend treatment with stronger effect",
-        "Evidence inconclusive; consider shared decision-making"
+        "The estimated effect exceeds the transfer penalty, but the recommendation should still be qualified by residual confounding risk.",
+        "The estimated effect is not clearly separated from the transfer penalty; avoid strong recommendations from observational evidence alone."
     )
 } else {
     benefit_to_risk <- NA
@@ -380,7 +381,7 @@ cat(sprintf(
 
 **RMST Difference (IPTW):** %.2f months (%s favored)
 **Deficiency:** %.3f
-**Evidence Quality:** %s
+**Residual Decision Risk:** %s
 **Transfer Penalty:** %.2f months
 **Minimax Safety Floor:** %.2f months
 
@@ -390,10 +391,10 @@ cat(sprintf(
 ### Clinical Translation
 
 The observational evidence suggests %s conditioning provides approximately
-%.1f additional months of relapse-free survival within the first 2 years.
+%.1f months difference in restricted mean survival within the first 24 months.
 
 However, the transfer penalty is %.1f months and the minimax safety floor is %.1f months
-on the 0--24 month utility scale. Clinicians should weigh this against individual patient factors.
+on the 0--24 month utility scale. This is a decision-relevant amount of residual uncertainty, so clinicians should weigh it against individual patient factors and avoid over-interpreting the observational comparison.
 ",
     abs(rmst_diff),
     ifelse(rmst_diff > 0, "Myeloablative", "Reduced"),
@@ -416,10 +417,10 @@ on the 0--24 month utility scale. Clinicians should weigh this against individua
 
 ### 3.1 When Is Observational Evidence Sufficient?
 
-| Study | δ (IPTW) | Transfer Penalty | Evidence Quality |
-|-------|----------|------------------|------------------|
-| Gene Perturbation | Low (~0.01) | Very Low | Excellent |
-| HCT Outcomes | Moderate (~0.05-0.15) | 1-4 months | Acceptable with caveats |
+| Study | IPTW proxy | Additional diagnostic | Transfer penalty | Interpretation |
+|-------|------------|---------------------|------------------|----------------|
+| Gene Perturbation | `r fmt_num(deficiency_gene$estimates["iptw"])` | NC not falsified; `r fmt_num(nc_test$delta_nc)` observable residual-association proxy | `r fmt_num(bounds_gene$transfer_penalty, 2)` on [0, 10] | Residual uncertainty appears modest but nonzero |
+| HCT Death-Endpoint RMST | `r fmt_num(deficiency_hct$estimates["iptw"])` | Confounding frontier recommended; no negative control in this example | `r fmt_num(bounds_hct$transfer_penalty, 2)` months | Residual uncertainty remains material on the 24-month scale |
 
 ### 3.2 General Workflow Summary
 

@@ -139,7 +139,7 @@ The "Safety Floor" tells us the minimum regret we risk by making a decision base
 bounds_rhc <- policy_regret_bound(res_rhc, utility_range = c(0, 1), method = "iptw")
 print(bounds_rhc)
 ```
-The result typically shows a low safety floor (e.g., < 0.05), suggesting that the observational findings are actionable unless the decision hinges on a very small utility difference.
+The result typically shows a small safety floor on the 0--1 utility scale, which can be decision-relevant when the treatment effect is not itself tiny. As elsewhere in the package, that should be read relative to the decision stakes rather than as a universal green light.
 
 ### Confounding Frontier
 Sensitivity analysis: If we missed a confounder $U$ correlated with treatment by $\alpha$ and outcome by $\gamma$, how much would our deficiency increase?

@@ -205,16 +205,16 @@ plot(results, type = "bar")
 
 We evaluate our drivers based on how close they got us to the RCT:
 
-*   **Unadjusted** ($\delta \approx 0.26$): Only drove us part of the way. Leaving us with a large distributional mismatch (TV distance ~ 0.26).
-*   **IPW / AIPW** ($\delta \approx 0.005$): Drove us **98% of the way** to the RCT. The remaining TV distance is negligible.
+*   **Unadjusted** ($\delta \approx 0.26$): Only drove us part of the way, leaving a large distributional mismatch.
+*   **IPW / AIPW** ($\delta \approx 0.005$): Drove us much closer to the RCT target, but the practical meaning of the remaining gap still depends on the decision stakes.
 
-We use a Traffic Light system to interpret $\delta$:
+We use a simple traffic-light heuristic to summarize $\delta$:
 
 | Zone | $\delta$ Value | Interpretation | Color |
 |------|---------|----------------|-------|
-| 🟢 Green | < 0.05 | Excellent—very close to RCT quality | Green |
-| 🟡 Yellow | 0.05 – 0.15 | Good approximation, but some mismatch | Yellow/Amber |
-| 🔴 Red | > 0.15 | Adjustment insufficient (TV distance > 0.15) | Red |
+| 🟢 Green | < 0.05 | Small proxy gap on this scale; often encouraging, but not a universal guarantee | Green |
+| 🟡 Yellow | 0.05 – 0.15 | Material mismatch remains; report bounds and sensitivity | Yellow/Amber |
+| 🔴 Red | > 0.15 | Large gap; stronger design or assumptions may be needed | Red |
 
 ## Step 4: Diagnostics (The "Negative Control Trap")
 
@@ -237,7 +237,7 @@ print(diag_res)
 
 ## Step 5: Effect Estimation
 
-Having validated our strategy (checked the car's position), we estimate the causal effect.
+Having checked our strategy and documented the remaining uncertainty, we estimate the causal effect.
 
 ```{r estimation}
 # Estimate ATE
@@ -293,13 +293,13 @@ plot(frontier, type = "heatmap", threshold = c(delta_threshold))
 
 ### Go/No-Go Decision
 
-The contour line represents the border of an acceptable **transfer penalty**.  
+The contour line represents the border of an acceptable **transfer penalty** under the user-chosen tolerance.  
 
 **Ask yourself:**
 > "Does the unsafe territory in the heat map push beyond your safety floor?"
 
-*   If **Yes**: The analysis has failed. **Do not publish.** Run the RCT.
-*   If **No**: We are safe within these bounds. Reliable result.
+*   If **Yes**: The analysis is too fragile for the stated tolerance. Strengthen the design, narrow the target population, or randomize.
+*   If **No**: The analysis may be usable within these bounds, but it should still be reported with the explicit residual-risk qualification.
 
 ---
 
@@ -313,15 +313,15 @@ runtime is available. In the current support matrix, that means `R >= 4.0`.
 ```{r survival, eval = eval_surv}
 data("hct_outcomes")
 
-# Event: Relapse (1) vs Censored (0)
-hct_outcomes$relapse <- ifelse(hct_outcomes$event_status == "Relapse", 1, 0)
+# Event: death (1) vs no death by the observed follow-up time (0)
+hct_outcomes$event_death <- as.integer(as.character(hct_outcomes$event_status) == "Death")
 
 spec_surv <- causal_spec_survival(
   data = hct_outcomes,
   treatment = "conditioning_intensity",
   time = "time_to_event",
-  event = "relapse",
-  covariates = c("age", "disease_status", "kps"),
+  event = "event_death",
+  covariates = c("age", "disease_status", "kps", "donor_type"),
   estimand = "RMST",
   horizon = 24
 )
@@ -335,6 +335,8 @@ surv_effect <- estimate_effect(surv_results, target_method = "iptw")
 print(surv_effect)
 plot(surv_effect)
 ```
+
+This survival example uses the current reproducible death-endpoint workflow. For relapse-versus-death analyses, move to `causal_spec_competing()` and `estimate_deficiency_competing()`.
 
 # Conclusion
 

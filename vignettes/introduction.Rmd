@@ -106,9 +106,9 @@ plot(results, type = "bar")
 The current proxy $\delta$ quantifies how far the reweighted propensity-score distribution is from the target population:
 
 - **$\delta$ = 0**: Perfect identification – The weighted propensity distribution matches the target population perfectly (TV distance = 0).
-- **$\delta$ < 0.05**: Excellent – The distribution is indistinguishable from a randomized trial for most practical purposes.
-- **0.05 $\leq$ $\delta$ < 0.15**: Good – Reasonable approximation, but some distributional mismatch exists.
-- **$\delta$ $\geq$ 0.15**: Caution – Substantial information gap (TV distance > 0.15). The "safety floor" for decision making will be significant.
+- **$\delta$ < 0.05**: Small proxy gap on this scale. Whether that is acceptable still depends on the decision stakes.
+- **0.05 $\leq$ $\delta$ < 0.15**: Moderate proxy gap. Adjustment helps, but observational and interventional evidence are not interchangeable.
+- **$\delta$ $\geq$ 0.15**: Large information gap. Decision-focused bounds and sensitivity analysis become especially important.
 
 **What to do with these results:**
 
@@ -121,6 +121,7 @@ The current proxy $\delta$ quantifies how far the reweighted propensity-score di
 Is the adjustment sufficient? We use the housekeeping gene (which shouldn't change) to test for residual confounding.
 
 ```{r diagnosis}
+set.seed(123)
 nc_test <- nc_diagnostic(spec, method = "iptw")
 print(nc_test)
 ```
@@ -129,8 +130,8 @@ print(nc_test)
 
 The negative control diagnostic tests whether your adjustment removes ALL confounding:
 
-- **p-value > 0.05 (Not Falsified)**: [PASS] – No evidence of residual confounding. Your adjustment appears adequate.
-- **p-value $\leq$ 0.05 (Falsified)**: [FAIL] – Evidence of residual confounding detected. Your covariates may not capture all confounders.
+- **p-value > 0.05 (Not Falsified)**: the screen does not find strong evidence of residual confounding, but this is not proof that all confounding is gone.
+- **p-value $\leq$ 0.05 (Falsified)**: evidence of residual confounding is detected. Your covariates may not capture all confounders.
 - **delta_nc**: Measures residual association with the negative control. Smaller is better.
 - **delta_bound**: Upper bound on your true deficiency given the negative control results.
 
@@ -178,7 +179,7 @@ When `results` comes from `estimate_deficiency()`, these are plug-in bounds base
 
 ### 5. Effect Estimation
 
-Finally, once we are confident in our adjustment strategy (low deficiency, passed diagnostics), we can estimate the causal effect.
+Finally, once we have selected an adjustment strategy and documented the remaining uncertainty, we can estimate the causal effect.
 
 ```{r effect}
 # Estimate ATE using the best performing method (IPTW)
@@ -196,9 +197,9 @@ print(effect)
 **Reporting Guidelines:**
 
 1. Report the effect with the method used: "Using IPTW adjustment, the estimated ATE is..."
-2. Reference the proxy: "The adjustment achieved $\delta$ = 0.XX, indicating [excellent/good/moderate] approximation to an RCT under the PS-TV diagnostic"
-3. Mention diagnostic results: "The negative control diagnostic [passed/failed], suggesting [adequate/inadequate] control of confounding"
+2. Reference the proxy: "The adjustment achieved $\delta$ = 0.XX under the PS-TV diagnostic"
+3. Mention diagnostic results: "The negative control diagnostic was [not falsified/falsified], with $\delta_{NC}$ = ..."
 4. State the bounds: "Transfer penalty is XX; minimax floor is YY on the chosen utility scale"
 
 **Complete Statement Example:**  
-*"Using IPTW adjustment (deficiency $\delta$ = 0.01), we estimate the knockout reduces target expression by 2.3 units (95% CI: [1.8, 2.8]). The negative control diagnostic passed (p = 0.24). On a 0--10 utility scale (M = 10), the transfer penalty is 0.10 units and the minimax safety floor is 0.05 units, well below our risk tolerance threshold."*
+*"Using IPTW adjustment (PS-TV proxy $\widehat{\delta} \approx `r round(results$estimates["iptw"], 3)`), we estimate the knockout changes target expression by `r round(effect$estimate, 2)` units. The negative control diagnostic is not falsified (p = `r signif(nc_test$p_value, 3)`), but $\widehat{\delta}_{NC} \approx `r round(nc_test$delta_nc, 3)` still implies a nonzero residual uncertainty budget. On a 0--10 utility scale (M = 10), the transfer penalty is `r round(bounds$transfer_penalty, 2)` units and the minimax safety floor is `r round(bounds$minimax_floor, 2)` units."*

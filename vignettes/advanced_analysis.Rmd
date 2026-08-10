@@ -102,20 +102,19 @@ This diagnostic tests a crucial assumption: *"Did my adjustment remove ALL confo
 **Key Results to Check:**
 
 1. **p_value**: 
-   - > 0.05: [PASS] – No evidence that treatment affects the negative control after adjustment
-   - $\leq$ 0.05: [FAIL] – Treatment still associated with negative control -> residual confounding detected
+   - > 0.05: the screen does not find strong evidence that treatment still predicts the negative control after adjustment
+   - $\leq$ 0.05: treatment still predicts the negative control -> residual confounding or misspecification is detected
 
 2. **falsified**: 
-   - FALSE: Assumption not falsified -> Adjustment appears adequate
-   - TRUE: Assumption falsified -> Likely unobserved confounding or model misspecification
+   - FALSE: the negative-control screen is not rejecting, which is useful but not a proof that all confounding is gone
+   - TRUE: the screen rejects -> likely unobserved confounding or model misspecification
 
 3. **delta_nc**: 
-   - Magnitude of residual association with negative control
-   - Smaller values indicate better performance
-   - Should be close to zero if adjustment is successful
+   - Magnitude of residual association with the negative control
+   - Smaller values indicate better performance, but even nonzero values under non-rejection still represent a residual uncertainty budget
 
 4. **delta_bound**: 
-   - Upper bound on your true deficiency: $\delta$ $\leq$ $\kappa$ $\times$ $\delta$_NC
+   - Upper bound on your true deficiency: $\delta \leq \kappa \times \delta_{NC}$
    - Provides a worst-case estimate even when you can't directly measure $\delta$
 
 **Scientific Implications:**
@@ -124,7 +123,8 @@ The negative control is powerful because:
 
 - It doesn't rely on assumptions about what confounders exist
 - It provides empirical evidence (not just theoretical arguments)
-- Falsification is strong evidence – if it fails, your conclusions are suspect
+- Falsification is strong evidence: if it fails, your conclusions are suspect
+- Non-falsification is only a screen; you should still report `delta_nc` or `delta_bound`
 
 **If falsified:**
 
@@ -134,7 +134,7 @@ The negative control is powerful because:
 
 ## Addressing the Falsification
 
-If the diagnostic fails (as it might with unobserved batch effects not fully captured), it indicates that your current adjustment set is insufficient to block all back-door paths to the negative control (and likely the outcome).
+If the diagnostic fails, or if `delta_nc` remains materially nonzero despite non-falsification, your current adjustment set is still leaving you with a residual uncertainty budget that should be reported explicitly.
 
 **Recommended Actions:**
 
@@ -214,11 +214,11 @@ This visualization maps the "danger zones" of unobserved confounding:
    - Small amounts of unobserved confounding don't destroy identification
    - You can proceed with confidence in these scenarios
 
-2. **Bright regions (high $\delta$ > 0.15)**:
+2. **Bright regions (larger $\delta$)**:
 
-   - "Danger zones" where unobserved confounding severely compromises identification
-   - Large distributional distance from the ideal experiment (TV distance > 0.15)
-   - Causal conclusions are unreliable without additional assumptions
+   - Regions where unobserved confounding more severely compromises identification
+   - Larger distributional distance from the ideal experiment
+   - Causal conclusions become more sensitive to hidden bias
 
 3. **Contour lines** (white lines at $\delta$ = 0.01, 0.05, 0.1):
 
@@ -229,12 +229,12 @@ This visualization maps the "danger zones" of unobserved confounding:
 
 Use domain knowledge to assess plausibility:
 
-- **If you believe** |$\alpha$| < 0.3 and |$\gamma$| < 0.3 (weak confounding), and the plot shows low $\delta$ in that region -> Proceed with confidence
-- **If plausible scenarios** put you in high-$\delta$ regions -> Your conclusions are fragile, acknowledge this limitation
-- **If uncertain** about confounding strength -> Report results across the frontier to show sensitivity
+- If the region you consider plausible stays in low-$\delta$ territory, your conclusions are less sensitive to hidden bias
+- If plausible scenarios enter moderate- or high-$\delta$ regions, your conclusions are fragile and should be reported that way
+- If you are uncertain about confounding strength, report results across the frontier instead of selecting a single reassuring point
 
 **Example Interpretation:**  
-*"Our sensitivity analysis shows that if unobserved confounding U -> A and U -> Y are both weak (|$\alpha$|, |$\gamma$| < 0.2), the deficiency remains below 0.05, suggesting robust identification. However, if either confounding strength exceeds 0.5, identification breaks down ($\delta$ > 0.1). Given the biological plausibility of weak confounding in this system, we conclude our estimates are reasonably robust."*
+*"Our sensitivity analysis shows that weak unobserved confounding leaves the deficiency proxy small, while stronger joint confounding pushes the study into a materially larger observational-to-interventional gap. We therefore report the causal estimate together with this sensitivity map, rather than treating the analysis as fully validated."*
 
 The confounding frontier shows the boundary: if we are outside the "safe" zone defined by the frontier, we cannot claim causal identification without further assumptions (see Akdemir 2026, DOI: 10.5281/zenodo.18367347 for theoretical details).
 

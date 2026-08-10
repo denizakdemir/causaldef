@@ -163,13 +163,13 @@ if (!is.null(bounds$regret_bound)) {
 
 cat("\n")
 
-# Decision thresholds
-if (delta_best < 0.05) {
-  cat("✓ EXCELLENT: Deficiency < 5%. High confidence in policy.\n")
-} else if (delta_best < 0.10) {
-  cat("⚠ MODERATE: Deficiency 5-10%. Proceed with monitoring.\n")
+# Illustrative deployment heuristic
+if (transfer_penalty < 5) {
+  cat("✓ LOW additional decision risk on the chosen 0-100 utility scale.\n")
+} else if (transfer_penalty < 10) {
+  cat("⚠ MODERATE additional decision risk. Deployment may be reasonable with monitoring.\n")
 } else {
-  cat("✗ CAUTION: Deficiency > 10%. Consider RCT before deployment.\n")
+  cat("✗ HIGH additional decision risk. Consider stronger design or randomized evidence before deployment.\n")
 }
 ```
 
@@ -186,10 +186,10 @@ frontier <- confounding_frontier(
   grid_size = 30
 )
 
-# Find the safe region
+# Find an illustrative low-risk region for this utility scale
 safe_region <- subset(frontier$grid, delta < 0.1)
 cat(sprintf(
-  "Safe operating region covers %.1f%% of confounding space\n",
+  "Illustrative low-risk region covers %.1f%% of confounding space\n",
   100 * nrow(safe_region) / nrow(frontier$grid)
 ))
 ```
@@ -232,12 +232,14 @@ if (requireNamespace("grf", quietly = TRUE)) {
 
 ### Pre-Deployment Checklist
 
-| Check | Threshold | Action if Failed |
-|-------|-----------|------------------|
-| $\delta < 0.05$ | Excellent | Deploy with confidence |
-| $\delta \in [0.05, 0.10]$ | Moderate | Deploy with active monitoring |
-| $\delta > 0.10$ | Concerning | Consider pilot RCT |
-| NC diagnostic falsified | Any | Do not deploy without more data |
+These cutoffs are illustrative for the 0--100 utility scale in this vignette. In practice, calibrate them to the decision stakes.
+
+| Check | Illustrative heuristic | Action if Failed |
+|-------|-------------------------|------------------|
+| Transfer penalty < 5 points | Small additional regret budget | Deployment may be reasonable |
+| Transfer penalty in [5, 10) points | Material but possibly manageable residual risk | Deploy only with active monitoring |
+| Transfer penalty >= 10 points | Large residual regret budget | Consider pilot RCT or narrower deployment |
+| NC diagnostic falsified | Any | Do not deploy without more data or stronger assumptions |
 
 ### Monitoring in Production
 

@@ -45,6 +45,7 @@ The key insight is:
 
 If you observe a non-zero association between $A$ and $Y'$ after adjustment, 
 this indicates that **confounding remains** and your causal estimates may be biased.
+Conversely, a small or non-significant residual association is not a proof of identification; it is a one-sided screen that should be reported together with `delta_nc` or `delta_bound`.
 
 ### Negative Control Sensitivity Bound (manuscript `thm:nc_bound`)
 
@@ -118,8 +119,9 @@ print(spec)
 
 ### Running the Negative Control Diagnostic
 
-Now we test whether our IPTW adjustment successfully removes confounding:
+Now we test whether our IPTW adjustment materially reduces confounding:
 ```{r nc-diagnostic, eval=FALSE}
+set.seed(123)
 nc_result <- nc_diagnostic(
   spec,
   method = "iptw",
@@ -144,7 +146,7 @@ The diagnostic returns:
 
 #### Scenario 1: Adjustment Succeeds
 
-If $W$ fully captures $U$, the negative control test will NOT falsify:
+If $W$ fully captures $U$, the negative control test will typically NOT falsify:
 
 ```{r scenario-success, eval=FALSE}
 # When W = U (no unmeasured confounding)
@@ -256,7 +258,7 @@ print(nc_tight)
 | `falsified` | Screening rejection of residual association |
 
 Negative control diagnostics provide a **data-driven** way to assess causal 
-assumptions. Use them alongside deficiency estimation for robust causal inference.
+assumptions. Use them alongside deficiency estimation as screening and sensitivity tools, not as stand-alone validation.
 
 ## References
 
