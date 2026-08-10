@@ -42,7 +42,7 @@
 #'
 #' @references
 #' Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-#' DOI: 10.5281/zenodo.18367347. See `thm:nc_bound` (Negative Control Sensitivity Bound).
+#' DOI: 10.5281/zenodo.21877511. See `thm:nc_bound` (Negative Control Sensitivity Bound).
 #'
 #' @examples
 #' # Create sample data with known structure

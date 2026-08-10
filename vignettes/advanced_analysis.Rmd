@@ -236,7 +236,7 @@ Use domain knowledge to assess plausibility:
 **Example Interpretation:**  
 *"Our sensitivity analysis shows that weak unobserved confounding leaves the deficiency proxy small, while stronger joint confounding pushes the study into a materially larger observational-to-interventional gap. We therefore report the causal estimate together with this sensitivity map, rather than treating the analysis as fully validated."*
 
-The confounding frontier shows the boundary: if we are outside the "safe" zone defined by the frontier, we cannot claim causal identification without further assumptions (see Akdemir 2026, DOI: 10.5281/zenodo.18367347 for theoretical details).
+The confounding frontier shows the boundary: if we are outside the "safe" zone defined by the frontier, we cannot claim causal identification without further assumptions (see Akdemir 2026, DOI: 10.5281/zenodo.21877511 for theoretical details).
 
 # Conclusion
 

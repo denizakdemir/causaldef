@@ -290,7 +290,7 @@ The `causaldef` approach provides a **unified** framework:
 ## References
 
 1. Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison. 
-   DOI: 10.5281/zenodo.18367347
+   DOI: 10.5281/zenodo.21877511
 
 2. VanderWeele, T. J., & Ding, P. (2017). Sensitivity Analysis in Observational 
    Research: Introducing the E-value. Annals of Internal Medicine.

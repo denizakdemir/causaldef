@@ -163,7 +163,7 @@ In this death-endpoint survival example, IPTW reduces the PS-TV proxy from about
 
 ## Theory
 
-Based on Akdemir (2026), ["Constraints on Causal Inference as Experiment Comparison"](https://doi.org/10.5281/zenodo.18367347).
+Based on Akdemir (2026), ["Constraints on Causal Inference as Experiment Comparison"](https://doi.org/10.5281/zenodo.21877511).
 
 The core theorem links the deficiency $\delta$ (Total Variation distance) to the max-min regret:
 
@@ -178,6 +178,6 @@ Where $M$ is the range of the utility function. In practice, the package often p
   title = {causaldef: Decision-Theoretic Causal Diagnostics via Experiment Deficiency},
   author = {Akdemir, Deniz},
   year = {2026},
-  doi = {10.5281/zenodo.18367347}
+  doi = {10.5281/zenodo.21877511}
 }
 ```

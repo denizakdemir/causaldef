@@ -76,7 +76,7 @@ print(report)
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-DOI: 10.5281/zenodo.18367347. See \code{thm:nc_bound} (Negative Control Sensitivity Bound).
+DOI: 10.5281/zenodo.21877511. See \code{thm:nc_bound} (Negative Control Sensitivity Bound).
 }
 \seealso{
 \code{\link[=nc_diagnostic]{nc_diagnostic()}}, \code{\link[=causal_spec]{causal_spec()}}

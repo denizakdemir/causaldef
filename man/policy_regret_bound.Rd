@@ -91,7 +91,7 @@ print(bound)
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-DOI: 10.5281/zenodo.18367347. See \code{thm:policy_regret} (Policy Regret Transfer)
+DOI: 10.5281/zenodo.21877511. See \code{thm:policy_regret} (Policy Regret Transfer)
 and \code{thm:safety_floor} (Minimax Safety Floor).
 }
 \seealso{

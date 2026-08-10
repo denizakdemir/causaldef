@@ -82,7 +82,7 @@ frontier <- confounding_frontier(spec, grid_size = 50)
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-DOI: 10.5281/zenodo.18367347. See \code{thm:confounding_lb} (Confounding Lower Bound).
+DOI: 10.5281/zenodo.21877511. See \code{thm:confounding_lb} (Confounding Lower Bound).
 }
 \seealso{
 \code{\link[=estimate_deficiency]{estimate_deficiency()}}, \code{\link[=policy_regret_bound]{policy_regret_bound()}}

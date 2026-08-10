@@ -265,7 +265,7 @@ scale. For full relapse-versus-death analyses, use
 ## Theory
 
 Based on Akdemir (2026), [“Constraints on Causal Inference as Experiment
-Comparison”](https://doi.org/10.5281/zenodo.18367347).
+Comparison”](https://doi.org/10.5281/zenodo.21877511).
 
 The core theorem links the deficiency $\delta$ (Total Variation
 distance) to the max-min regret:
@@ -284,6 +284,6 @@ interpretation should track the underlying quantity being supplied.
   title = {causaldef: Decision-Theoretic Causal Diagnostics via Experiment Deficiency},
   author = {Akdemir, Deniz},
   year = {2026},
-  doi = {10.5281/zenodo.18367347}
+  doi = {10.5281/zenodo.21877511}
 }
 ```

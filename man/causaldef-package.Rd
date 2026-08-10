@@ -44,7 +44,7 @@ a specialized module.
 }
 }
 \references{
-Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison: A Framework for Identification, Transportability, and Policy Learning. DOI: 10.5281/zenodo.18367347
+Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison: A Framework for Identification, Transportability, and Policy Learning. DOI: 10.5281/zenodo.21877511
 
 Le Cam, L., & Yang, G. L. (2000). Asymptotics in Statistics: Some Basic Concepts. Springer.
 }

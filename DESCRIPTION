@@ -11,7 +11,7 @@ Author: Deniz Akdemir [aut, cre]
 Maintainer: Deniz Akdemir <deniz.akdemir.work@gmail.com>
 Description: Implements a deficiency-theoretic framework for causal inference,
     grounded in the classical theory of statistical experiment comparison,
-    as described in Akdemir (2026) <doi:10.5281/zenodo.18367347>. Provides
+    as described in Akdemir (2026) <doi:10.5281/zenodo.21877511>. Provides
     theorem-backed bounds together with computable proxy diagnostics for
     information loss from confounding, selection bias, and distributional
     shift. Supports continuous, binary, count, survival, and competing risks
