@@ -1,3 +1,31 @@
+# causaldef 0.2.1
+
+## Bug Fixes
+
+* **`confounding_frontier()` / `.tv_distance_normal()`**: Fixed a numerical bug
+  in the closed-form crossing-point TV computation that returned values near 0
+  instead of near 1 when both Gaussian components have very small standard
+  deviations relative to their mean separation (a near-degenerate point-mass
+  regime where the quadratic discriminant loses precision). Replaced with
+  integration split into pieces sized to each component's own sd. Verified
+  against an independently-constructed cross-check across 3000 random cases
+  spanning 8 orders of magnitude in sd (max discrepancy ~4e-8); the function's
+  default usage range within `confounding_frontier()` was never affected by
+  this bug.
+
+## Documentation
+
+* Removed an unspecified "universal constant" phrase from `rkhs_rate_bound()`
+  and `confounding_frontier()` documentation (the underlying manuscript bound
+  was found to not hold with any single universal constant for large `sigma_A`
+  and was replaced with an explicit, unconditional bound).
+* Hedged interpretive guidance in the README and vignettes.
+* Reworded documentation, README, and vignettes to reduce narrative
+  over-attribution to "Le Cam" (e.g. "Le Cam deficiency" to "deficiency",
+  "Le Cam's theory" to "the classical theory of statistical experiment
+  comparison"), while keeping the Le Cam & Yang (2000) bibliography citation.
+  No functional code changes from this item.
+
 # causaldef 0.2.0
 
 ## Major Changes

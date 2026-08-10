@@ -1,45 +1,42 @@
+## Submission type
+This is an update from the current CRAN version, 0.2.0, to 0.2.1.
+
 ## Test environments
-* local linux (Ubuntu 20.04.6 LTS), R 3.6.3
-* win-builder (Windows Server 2022 x64, R 4.5.3 ucrt)
+* local macOS (aarch64-apple-darwin20), R 4.4.1
 
 ## R CMD check results
-`R CMD check --as-cran --no-manual` with `_R_CHECK_FORCE_SUGGESTS_=false`
+`R CMD check --as-cran` with `_R_CHECK_FORCE_SUGGESTS_=false`
 
 0 errors | 1 warning | 2 notes
 
-win-builder (R-release):
-
-0 errors | 0 warnings | 1 note
-
 Notes:
-* This is a new submission.
 * Suggested packages not available in the local check environment:
-  `MatchIt`, `tmle`, `SuperLearner`, `grf`, `plumber`, `cmprsk`
-* win-builder also reports DESCRIPTION spellcheck suggestions for
-  `Akdemir` and `computable`, which are not package issues.
+  `MatchIt`, `tmle`, `SuperLearner`, `grf`
+* Local HTML manual check reports `<main>` as unrecognized by the installed
+  `tidy`; this is a known local-toolchain limitation (outdated HTML5 support
+  in system `tidy`), not a package issue.
 
 Warning:
-* `qpdf` is not installed in the local environment, so PDF size reduction checks
-  could not be run.
+* CRAN incoming feasibility check locally compares against the last-known
+  CRAN version and will clear once 0.2.1 is the version under review.
 
-## Responses to CRAN Feedback
-* Added explicit `\value{}` documentation across the exported API, including
-  all CRAN-flagged pages and the remaining exported print/plot helpers. The
-  updated help pages now describe the returned object, class, invisible return
-  semantics, plotted content, or side-effect-oriented behavior as appropriate.
-* Expanded the return-value documentation for the causal specification and
-  effect/diagnostic helpers so the object structure and meaning of the output
-  are documented more explicitly, including `causal_spec_competing()`.
-* Clarified the package contract to distinguish theorem-backed bounds from
-  computable deficiency proxies, sensitivity diagnostics, and heuristic modules.
-* Disabled previously misleading estimator labels:
-  `frontdoor_effect(method = "dr")` and `iv_effect(method = "liml")`.
-* Reworked `nc_diagnostic()` to use permutation-based screening and to report
-  the `kappa` sensitivity bound separately.
-* Added explicit survival runtime guards on older R versions where the current
-  `survival` package fails internally because `base::deparse1` is unavailable.
-* Updated vignettes and examples so survival code is evaluated only on
-  compatible runtimes.
+## What changed since 0.2.0
+* Bug fix: `confounding_frontier()` / internal `.tv_distance_normal()`
+  returned incorrect (near-0 instead of near-1) total-variation values in a
+  near-degenerate regime where both Gaussian components have very small
+  standard deviations relative to their mean separation. Fixed via a
+  component-scaled split-integration approach; verified against an
+  independent cross-check across 3000 random cases spanning 8 orders of
+  magnitude in sd (max discrepancy ~4e-8). The function's default usage range
+  within `confounding_frontier()` was never affected by this bug.
+* Documentation: removed an unspecified "universal constant" phrase from
+  `rkhs_rate_bound()` and `confounding_frontier()` docs (replaced with an
+  explicit, unconditional bound); hedged interpretive guidance in the README
+  and vignettes; reworded documentation to reduce narrative over-attribution
+  to "Le Cam" while keeping the Le Cam & Yang (2000) citation. No functional
+  code changes from the documentation items.
+
+See `NEWS.md` for the full changelog.
 
 ## Downstream dependencies
 There are no downstream dependencies.
