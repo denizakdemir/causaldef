@@ -91,6 +91,12 @@ spec <- causal_spec(df, "A", "Y", "W")
 
 ### Deficiency Estimation
 
+`estimate_deficiency()` returns a **propensity-score total-variation proxy**,
+not an identified estimate of the exact deficiency. The comparison with
+E-values above is a comparison of *diagnostics*: read $\delta$ here on its own
+scale, as the other vignettes do, rather than as the deficiency appearing in
+the theoretical bounds.
+
 ```{r deficiency-calc}
 def_results <- estimate_deficiency(
     spec,
@@ -103,7 +109,12 @@ print(def_results)
 
 ### Confounding Frontier
 
-The confounding frontier maps deficiency as a function of confounding strength:
+The confounding frontier maps a deficiency **lower bound** as a function of
+assumed confounding strength $(\alpha, \gamma)$. It is a bound, so a small value
+does not license the conclusion that confounding is mild. Note also that the
+bound is not a constant multiple of $|\alpha\gamma|$ divided by a noise scale:
+no such universal constant exists, which is why the surface below flattens
+rather than growing without limit.
 
 ```{r frontier-plot, fig.height=5}
 frontier <- confounding_frontier(

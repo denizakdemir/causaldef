@@ -156,6 +156,11 @@ cat("Estimated Mortality (Risk-Based):", round(val_risk, 3), "\n")
 Even if the Risk-Based policy looks better, can we trust it?
 The **Safety Floor** tells us the worst-case error in our value estimate due to unmeasured confounding.
 
+> **What $\delta$ is here.** `estimate_deficiency()` returns a propensity-score
+> total-variation **proxy**, not an identified estimate of the exact deficiency.
+> Bounds below that are stated in terms of $\delta$ inherit that: they are only
+> as good as the proxy standing in for it.
+
 ```{r safety-floor}
 # 1. Estimate Deficiency of the dataset
 defom <- estimate_deficiency(spec_rhc, methods = "iptw", n_boot = 0)
