@@ -3,7 +3,7 @@ This is an update from the current CRAN version, 0.2.1, to 0.3.0.
 
 ## Test environments
 * local Ubuntu 20.04 (x86_64-pc-linux-gnu), R 3.6.3
-* (to add before submission: win-builder R-devel and a current R 4.x run)
+* win-builder, R Under development (unstable) (2026-11-07 r90850 ucrt), x86_64-w64-mingw32: Status OK (0 errors | 0 warnings | 0 notes)
 
 ## R CMD check results
 `R CMD check --as-cran` with `_R_CHECK_FORCE_SUGGESTS_=false`
