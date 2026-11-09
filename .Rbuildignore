@@ -17,3 +17,4 @@
 ^\\.\\.Rcheck$
 ^causaldef_.*\.tar\.gz$
 ^data-raw$
+^CRAN-RELEASE$
