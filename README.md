@@ -31,9 +31,9 @@ overlap/positivity and residual confounding risk.
 For bounded utilities with range $M$ (max minus min), the manuscript
 provides:
 
-- a **regret transfer penalty** (upper bound term) of $M\cdot \delta$,
+- a **regret transfer penalty** (upper bound term) of $2|\mathcal{A}|M\cdot \delta$ ($4M\delta$ for a binary treatment),
   and
-- a minimax **safety floor** (lower bound) of $(M/2)\cdot \delta$.
+- a minimax **safety floor** (lower bound) of $(M/4)\cdot \delta$.
 
 `policy_regret_bound()` reports both quantities.
 
@@ -265,12 +265,12 @@ scale. For full relapse-versus-death analyses, use
 ## Theory
 
 Based on Akdemir (2026), [“Constraints on Causal Inference as Experiment
-Comparison”](https://doi.org/10.5281/zenodo.21877511).
+Comparison”](https://doi.org/10.5281/zenodo.18367346).
 
 The core theorem links the deficiency $\delta$ (Total Variation
 distance) to the max-min regret:
 
-$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M \cdot \delta $$
+$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{sim}(\pi) + 2|\mathcal{A}|\, M \cdot \delta $$
 
 Where $M$ is the range of the utility function. In practice, the package
 often provides plug-in bounds by feeding a computable proxy/estimate
@@ -284,6 +284,6 @@ interpretation should track the underlying quantity being supplied.
   title = {causaldef: Decision-Theoretic Causal Diagnostics via Experiment Deficiency},
   author = {Akdemir, Deniz},
   year = {2026},
-  doi = {10.5281/zenodo.21877511}
+  doi = {10.5281/zenodo.18367346}
 }
 ```

@@ -29,7 +29,7 @@ Several frameworks exist:
 |-----------|------------|----------------|
 | **E-value** | Risk ratio needed | "Unmeasured confounder must have RR = X" |
 | **Partial R²** | Variance explained | "Confounder must explain X% of variance" |
-| **Deficiency (δ)** | Information loss | "Transfer penalty bounded by $M\delta$" |
+| **Deficiency (δ)** | Information loss | "Transfer penalty bounded by $4M\delta$ (binary treatment)" |
 
 This vignette shows how **deficiency-based sensitivity analysis** relates to 
 and extends traditional approaches.
@@ -54,7 +54,7 @@ $$E = RR + \sqrt{RR \times (RR - 1)}$$
 Deficiency (δ) takes a decision-theoretic view:
 
 > "Given the information gap between observational and interventional data, 
-> the worst-case regret inflation term is bounded by $M\delta$ (and there is a minimax floor $(M/2)\delta$)."
+> the worst-case regret inflation term is bounded by $4M\delta$ for a binary treatment (and there is a minimax floor $(M/4)\delta$)."
 
 Key insight: **δ directly quantifies policy consequences**, not just 
 statistical associations.
@@ -190,7 +190,7 @@ treatment and outcome.
 |--------|---------|----------------|
 | **Scale** | Risk ratio | Total variation distance |
 | **Interpretation** | Strength needed to "explain away" | Information loss for decisions |
-| **Decision utility** | Abstract | Direct (via $M\delta$ transfer penalty) |
+| **Decision utility** | Abstract | Direct (via $4M\delta$ transfer penalty) |
 | **Multi-method** | Single estimate | Compares strategies |
 | **Negative controls** | Not integrated | Built-in diagnostics |
 
@@ -285,7 +285,7 @@ The `causaldef` approach provides a **unified** framework:
 ├─────────────────────────────────────────────────────────────────┤
 │  policy_regret_bound()                                           │
 │    → Translates δ into decision-theoretic consequences          │
-│    → Transfer penalty = Mδ; minimax floor = (M/2)δ              │
+│    → Transfer penalty = 4Mδ (binary); minimax floor = (M/4)δ    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -301,7 +301,7 @@ The `causaldef` approach provides a **unified** framework:
 ## References
 
 1. Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison. 
-   DOI: 10.5281/zenodo.21877511
+   DOI: 10.5281/zenodo.18367346
 
 2. VanderWeele, T. J., & Ding, P. (2017). Sensitivity Analysis in Observational 
    Research: Introducing the E-value. Annals of Internal Medicine.

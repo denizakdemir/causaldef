@@ -1,42 +1,31 @@
 ## Submission type
-This is an update from the current CRAN version, 0.2.0, to 0.2.1.
+This is an update from the current CRAN version, 0.2.1, to 0.3.0.
 
 ## Test environments
-* local macOS (aarch64-apple-darwin20), R 4.4.1
+* local Ubuntu 20.04 (x86_64-pc-linux-gnu), R 3.6.3
+* (to add before submission: win-builder R-devel and a current R 4.x run)
 
 ## R CMD check results
 `R CMD check --as-cran` with `_R_CHECK_FORCE_SUGGESTS_=false`
 
-0 errors | 1 warning | 2 notes
+0 errors | 1 warning | 2 notes, all from the local environment:
 
-Notes:
-* Suggested packages not available in the local check environment:
-  `MatchIt`, `tmle`, `SuperLearner`, `grf`
-* Local HTML manual check reports `<main>` as unrecognized by the installed
-  `tidy`; this is a known local-toolchain limitation (outdated HTML5 support
-  in system `tidy`), not a package issue.
+* WARNING: `qpdf` is not installed locally (needed only for the PDF size-reduction check).
+* NOTE: Suggested packages not available locally: `MatchIt`, `tmle`, `SuperLearner`, `grf`, `plumber`, `cmprsk`.
+* NOTE: "unable to verify current time" (no network time source in the local check).
 
-Warning:
-* CRAN incoming feasibility check locally compares against the last-known
-  CRAN version and will clear once 0.2.1 is the version under review.
+The slow `confounding_frontier()` example (previously over 5 s) has been reduced to about 2.5 s.
 
-## What changed since 0.2.0
-* Bug fix: `confounding_frontier()` / internal `.tv_distance_normal()`
-  returned incorrect (near-0 instead of near-1) total-variation values in a
-  near-degenerate regime where both Gaussian components have very small
-  standard deviations relative to their mean separation. Fixed via a
-  component-scaled split-integration approach; verified against an
-  independent cross-check across 3000 random cases spanning 8 orders of
-  magnitude in sd (max discrepancy ~4e-8). The function's default usage range
-  within `confounding_frontier()` was never affected by this bug.
-* Documentation: removed an unspecified "universal constant" phrase from
-  `rkhs_rate_bound()` and `confounding_frontier()` docs (replaced with an
-  explicit, unconditional bound); hedged interpretive guidance in the README
-  and vignettes; reworded documentation to reduce narrative over-attribution
-  to "Le Cam" while keeping the Le Cam & Yang (2000) citation. No functional
-  code changes from the documentation items.
+## What changed since 0.2.1
+This release corrects decision-theoretic constants that a re-check of the companion
+manuscript showed to be wrong. Numerical outputs of the affected functions change:
 
-See `NEWS.md` for the full changelog.
+* `policy_regret_bound()`: the transfer penalty is 2·|A|·M·δ (previously M·δ) and the minimax floor is (M/4)·δ (previously (M/2)·δ). New arguments `n_actions` and `policy_type`.
+* `policy_regret_bound_vc()`: corrected finite-sample bound; the new argument `eta` is required.
+* `rkhs_rate_bound()`: corrected rate (n·η)^(−β/(2β+d_W+d_Y)); new argument `d_y`.
+* The manuscript is cited by its concept DOI (10.5281/zenodo.18367346).
+
+See `NEWS.md` for details.
 
 ## Downstream dependencies
 There are no downstream dependencies.

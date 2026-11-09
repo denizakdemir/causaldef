@@ -2,9 +2,9 @@
 % Please edit documentation in R/theorem_bounds.R
 \name{rkhs_rate_bound}
 \alias{rkhs_rate_bound}
-\title{RKHS Rate Bound (Result 1)}
+\title{Nonparametric Rate for Back-Door Kernels (Result 1)}
 \usage{
-rkhs_rate_bound(n, beta, d_w, eta, xi = 0.05)
+rkhs_rate_bound(n, beta, d_w, eta, xi = 0.05, d_y = 0)
 }
 \arguments{
 \item{n}{Sample size.}
@@ -15,11 +15,21 @@ rkhs_rate_bound(n, beta, d_w, eta, xi = 0.05)
 
 \item{eta}{Positivity constant (\eqn{\eta>0}) such that \eqn{P(A=a|W=w) \ge \eta}.}
 
-\item{xi}{Failure probability (\eqn{\xi\in(0,1)}).}
+\item{xi}{Unused; retained for backward compatibility.}
+
+\item{d_y}{Outcome dimension (\eqn{d_Y}); 0 for finite outcome spaces (default).}
 }
 \value{
-Numeric rate bound (an O(.) rate; the implicit constant is not pinned down here).
+Numeric rate (an O(.) rate; constants and log factors are not pinned down).
 }
 \description{
-Computes the explicit rate bound stated in Result 1 (finite-sample RKHS rate).
+Order-of-magnitude rate for the total-variation estimation error of the
+back-door plug-in interventional law (manuscript Remark on nonparametric
+rates): \eqn{(n\eta)^{-\beta/(2\beta + d_W + d_Y)}}, up to constants and
+logarithmic factors. Here \eqn{n\eta} is the effective number of observations at
+the treatment level of interest. For finite outcome spaces use \code{d_y = 0}.
+}
+\details{
+Versions up to 0.2.1 returned \eqn{n^{-\beta/(2\beta+d_W)} + \eta^{-1}\sqrt{\log(1/\xi)/n}},
+which ignored the outcome dimension and misplaced the positivity constant.
 }

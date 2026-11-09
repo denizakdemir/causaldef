@@ -168,8 +168,8 @@ print(bounds_gene)
 
 `policy_regret_bound()` reports:
 
-- **Transfer penalty** \(M\cdot\delta\): additive worst-case regret inflation term, and
-- **Minimax safety floor** \((M/2)\cdot\delta\): irreducible worst-case regret when \(\delta>0\).
+- **Transfer penalty** \(2|\mathcal{A}|M\cdot\delta\) (\(4M\delta\) for a binary treatment): additive worst-case regret inflation term, and
+- **Minimax safety floor** \((M/4)\cdot\delta\): irreducible worst-case regret when \(\delta>0\).
 
 **Decision Rule:**
 - If `transfer_penalty` is small relative to the practical stakes of the decision → the observational evidence may be usable with caveats
@@ -449,7 +449,7 @@ on the 0--24 month utility scale. This is a decision-relevant amount of residual
 
 1. Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison: 
    A Framework for Identification, Transportability, and Policy Learning. 
-   DOI: 10.5281/zenodo.21877511
+   DOI: 10.5281/zenodo.18367346
 
 2. Le Cam, L., & Yang, G. L. (2000). Asymptotics in Statistics: Some Basic 
    Concepts. Springer.

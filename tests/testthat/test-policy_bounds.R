@@ -59,20 +59,42 @@ test_that("policy_regret_bound can use upper CI for delta", {
 })
 
 test_that("policy regret bounds match manuscript", {
-  # Transfer penalty (upper bound additive term): M * delta
-  # Minimax floor (lower bound): (M/2) * delta
+  # Policy Regret Transfer: value error |A| M delta, regret penalty 2 |A| M delta
+  # Minimax Safety Floor: (M/4) delta
   delta <- 0.1
   M <- 10  # utility range diff
-  
+
   bound <- policy_regret_bound(
     deficiency = delta,
     utility_range = c(0, M)
   )
-  
-  expected_floor <- M * delta
-  expect_equal(bound$safety_floor, expected_floor)
-  expect_equal(bound$transfer_penalty, expected_floor)
-  expect_equal(bound$minimax_floor, 0.5 * M * delta)
+
+  expect_equal(bound$n_actions, 2L)
+  expect_equal(bound$value_error, 2 * M * delta)
+  expect_equal(bound$transfer_penalty, 2 * 2 * M * delta)
+  expect_equal(bound$safety_floor, bound$transfer_penalty)
+  expect_equal(bound$minimax_floor, 0.25 * M * delta)
+})
+
+test_that("constant policies drop the action-count factor", {
+  bound <- policy_regret_bound(deficiency = 0.1, utility_range = c(0, 1),
+                               policy_type = "constant", n_actions = 5)
+  expect_equal(bound$value_error, 0.1)
+  expect_equal(bound$transfer_penalty, 0.2)
+})
+
+test_that("covariate policies scale with the number of actions", {
+  b3 <- policy_regret_bound(deficiency = 0.1, utility_range = c(0, 1), n_actions = 3)
+  expect_equal(b3$transfer_penalty, 2 * 3 * 0.1)
+  expect_error(policy_regret_bound(deficiency = 0.1, n_actions = 1))
+})
+
+test_that("factor 2 example from the manuscript is respected", {
+  # Two actions, trivial covariates: worst-case regret 2 M d while simulated regret 0.
+  d <- 0.1
+  b <- policy_regret_bound(deficiency = d, utility_range = c(0, 1),
+                           policy_type = "constant", obs_regret = 0)
+  expect_gte(b$regret_bound, 2 * d)
 })
 
 test_that("regret bound includes obs_regret", {
@@ -86,8 +108,8 @@ test_that("regret bound includes obs_regret", {
     obs_regret = obs_regret
   )
   
-  # regret_bound = obs_regret + M*delta
-  expected_bound <- obs_regret + M * delta
+  # regret_bound = obs_regret + 2 * n_actions * M * delta (default: 2 actions)
+  expected_bound <- obs_regret + 4 * M * delta
   expect_equal(bound$regret_bound, expected_bound)
 })
 

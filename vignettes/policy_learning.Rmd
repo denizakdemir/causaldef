@@ -26,11 +26,12 @@ confounding exists.
 
 The key insight is the **policy regret transfer bound**:
 
-$$\text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M \cdot \delta$$
+$$\text{Regret}_{do}(\pi) \leq \text{Regret}_{sim}(\pi) + 2|\mathcal{A}|\, M \cdot \delta$$
 
 where:
 - $\text{Regret}_{do}(\pi)$ = regret under the true interventional distribution
-- $\text{Regret}_{obs}(\pi)$ = regret observed in data
+- $\text{Regret}_{sim}(\pi)$ = regret computed under the adjusted (simulated) interventional laws
+- $|\mathcal{A}|$ = number of actions (2 for a binary treatment; the factor drops to 1 when comparing fixed actions)
 - $M$ = utility range (max - min possible outcomes)
 - $\delta$ = deficiency (quantifies confounding)
 
@@ -38,8 +39,10 @@ where:
 
 `policy_regret_bound()` reports two complementary quantities:
 
-- **Transfer penalty** \(M\cdot\delta\): additive worst-case regret inflation term, and
-- **Minimax safety floor** \((M/2)\cdot\delta\): irreducible worst-case regret when \(\delta>0\).
+- **Transfer penalty** \(2|\mathcal{A}|M\cdot\delta\) (\(4M\delta\) for a binary treatment): additive worst-case regret inflation term, and
+- **Minimax safety floor** \((M/4)\cdot\delta\): irreducible worst-case regret when \(\delta>0\).
+
+(Versions up to 0.2.1 used \(M\delta\) and \((M/2)\delta\); both constants were corrected in 0.3.0.)
 
 If \(\delta>0\), no algorithm can guarantee zero worst-case regret without stronger assumptions or randomized data.
 
@@ -154,12 +157,13 @@ cat("=== Policy Deployment Decision ===\n\n")
 
 delta_best <- min(def_results$estimates)
 M <- diff(utility_range)
-transfer_penalty <- M * delta_best
-minimax_floor <- 0.5 * M * delta_best
+n_actions <- 2
+transfer_penalty <- 2 * n_actions * M * delta_best
+minimax_floor <- 0.25 * M * delta_best
 
 cat(sprintf("Best achievable deficiency: %.3f\n", delta_best))
-cat(sprintf("Transfer penalty (M*delta): %.1f points\n", transfer_penalty))
-cat(sprintf("Minimax safety floor (M/2*delta): %.1f points\n", minimax_floor))
+cat(sprintf("Transfer penalty (2*|A|*M*delta): %.1f points\n", transfer_penalty))
+cat(sprintf("Minimax safety floor (M/4*delta): %.1f points\n", minimax_floor))
 cat(sprintf("Observed regret: %.1f points\n", obs_regret))
 
 if (!is.null(bounds$regret_bound)) {
@@ -278,12 +282,13 @@ if (def_monitor$estimates["iptw"] > 1.5 * delta_best) {
 
 For any policy $\pi$ and bounded utility function $u \in [0, M]$:
 
-$$\mathbb{E}_{P^{do}}\left[\max_a u(a, X) - u(\pi(X), X)\right] \leq 
-\mathbb{E}_{P^{obs}}\left[\max_a u(a, X) - u(\pi(X), X)\right] + M\delta$$
+$$\text{Regret}_{do}(\pi) \leq \text{Regret}_{sim}(\pi) + 2|\mathcal{A}|\,M\delta$$
 
-**Proof sketch**: The deficiency $\delta$ bounds the total variation distance
-between the (simulated) observational and target interventional laws. Since utility is bounded by $M$,
-the maximum discrepancy in expected utility is at most $M$ times the total variation gap.
+**Proof sketch**: For each action $a$, the deficiency $\delta$ bounds the total variation distance
+between the simulated and true interventional laws. A policy's value is a sum over actions of
+expectations of functions with values in $[0, M]$, so its simulated value is off by at most
+$|\mathcal{A}|M\delta$; a regret is a difference of two values, which gives the factor 2. The factor 2
+cannot be removed in general.
 
 ### Why This Matters
 
@@ -301,9 +306,9 @@ The safety floor answers these questions with formal guarantees.
 
 | Concept | Definition | Function |
 |---------|------------|----------|
-| Transfer penalty | $M\delta$ — additive regret inflation term | `$transfer_penalty` |
-| Minimax safety floor | $(M/2)\delta$ — irreducible worst-case regret | `$minimax_floor` |
-| Regret bound | observed regret + transfer penalty | `$regret_bound` |
+| Transfer penalty | $2|\mathcal{A}|M\delta$ — additive regret inflation term | `$transfer_penalty` |
+| Minimax safety floor | $(M/4)\delta$ — irreducible worst-case regret | `$minimax_floor` |
+| Regret bound | simulated regret + transfer penalty | `$regret_bound` |
 | Deficiency | Information gap between obs and do | `estimate_deficiency()` |
 | Confounding Frontier | Deficiency as function of $(\alpha, \gamma)$ | `confounding_frontier()` |
 
@@ -312,7 +317,7 @@ Use these tools to make **safe, accountable decisions** from observational data.
 ## References
 
 1. Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison. 
-   DOI: 10.5281/zenodo.21877511. See `thm:policy_regret` (Policy Regret Transfer) and
+   DOI: 10.5281/zenodo.18367346. See `thm:policy_regret` (Policy Regret Transfer) and
    `thm:safety_floor` (Minimax Safety Floor).
 
 2. Athey, S., & Wager, S. (2021). Policy learning with observational data. 

@@ -64,12 +64,12 @@ plot(bounds, type = "safety_curve")
 
 Figure 1: Regret Bounds vs Deficiency. The transfer penalty and minimax floor scale linearly in $\delta$:
 
-$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{obs}(\pi) + M\delta $$
+$$ \text{Regret}_{do}(\pi) \leq \text{Regret}_{sim}(\pi) + 2|\mathcal{A}|M\delta $$
 
 *   **Regret**: The cost of making a suboptimal decision based on your data.
-*   **Regret_obs**: The regret you can evaluate under the observational regime.
-*   **$M\delta$**: The transfer penalty (additive worst-case regret inflation term).
-    The minimax safety floor is $(M/2)\delta$.
+*   **Regret_sim**: The regret you can evaluate under the adjusted (simulated) interventional laws.
+*   **$2|\mathcal{A}|M\delta$**: The transfer penalty ($4M\delta$ for a binary treatment).
+    The minimax safety floor is $(M/4)\delta$.
 
 This is not just about bias—this is calculating the safety price for your decision. You are about to learn how to calculate, bound, and minimize this deficiency ($\delta$).
 
@@ -249,7 +249,7 @@ print(effect)
 
 This is the most critical step. We convert $\delta$ into decision-theoretic quantities.
 
-$$ \text{Transfer Penalty} = M\delta,\qquad \text{Minimax Safety Floor} = (M/2)\delta $$
+$$ \text{Transfer Penalty} = 2|\mathcal{A}|M\delta\ (=4M\delta\ \text{for a binary treatment}),\qquad \text{Minimax Safety Floor} = (M/4)\delta $$
 
 Where:
 
@@ -283,10 +283,10 @@ frontier <- confounding_frontier(spec, grid_size = 30)
 
 # Calculate the delta corresponding to an acceptable transfer-penalty limit
 # Suppose our max acceptable transfer penalty is 0.2 units, and M=10
-# Transfer penalty = M * delta  =>  delta = transfer penalty / M
+# Transfer penalty = 4 * M * delta (binary treatment)  =>  delta = transfer penalty / (4 * M)
 acceptable_transfer_penalty <- 0.2
 M <- 10
-delta_threshold <- acceptable_transfer_penalty / M
+delta_threshold <- acceptable_transfer_penalty / (4 * M)
 
 plot(frontier, type = "heatmap", threshold = c(delta_threshold)) 
 ```

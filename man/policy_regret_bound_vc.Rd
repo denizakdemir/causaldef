@@ -2,7 +2,7 @@
 % Please edit documentation in R/theorem_bounds.R
 \name{policy_regret_bound_vc}
 \alias{policy_regret_bound_vc}
-\title{Policy Regret Bound with VC Term (Result 3)}
+\title{Finite-Sample Policy Regret Bound with VC Term (Result 3)}
 \usage{
 policy_regret_bound_vc(
   deficiency,
@@ -12,7 +12,8 @@ policy_regret_bound_vc(
   utility_range = c(0, 1),
   obs_regret = NULL,
   delta_mode = c("point", "upper"),
-  C = 2
+  C = 2,
+  eta = NULL
 )
 }
 \arguments{
@@ -26,16 +27,30 @@ policy_regret_bound_vc(
 
 \item{utility_range}{Numeric vector c(min, max) of utility bounds.}
 
-\item{obs_regret}{Optional observed regret under the observational regime.}
+\item{obs_regret}{Deprecated and ignored: the bound applies to the empirical
+welfare maximizer, whose simulated regret is controlled by the complexity term.}
 
 \item{delta_mode}{Passed through to \code{policy_regret_bound()} when \code{deficiency} is an object.}
 
-\item{C}{Constant multiplying the VC-complexity penalty (default 2; not derived from first principles here).}
+\item{C}{Absolute constant multiplying the statistical term. It is not pinned down
+by the theorem; the default 2 is illustrative.}
+
+\item{eta}{Overlap constant: the known propensity satisfies
+\eqn{\eta \le P(A=1|W) \le 1-\eta}. Required.}
 }
 \value{
-An object of class \code{policy_bound} with additional field \code{complexity_penalty}.
+An object of class \code{policy_bound} with additional field \code{complexity_penalty};
+\code{regret_bound} equals \code{transfer_penalty + complexity_penalty}.
 }
 \description{
-Extends \code{policy_regret_bound()} with the explicit VC-complexity penalty from
-Result 3: \eqn{C M \sqrt{(VC(\Pi)\log n + \log(1/\xi))/n}}.
+Regret bound for the empirical welfare maximizer under inverse propensity
+weighting with a known propensity in \eqn{[\eta, 1-\eta]} (binary treatment),
+following the manuscript's Finite-Sample Policy Regret Transfer theorem:
+\deqn{Regret_{do}(\hat\pi_n) \le 4M\delta + C\frac{M}{\eta}\left(\sqrt{\frac{v}{n}} + \sqrt{\frac{\log(1/\xi)}{n}}\right),}
+where \eqn{\delta} is the worst-case error of the back-door kernels used and
+\eqn{v} is the VC dimension of the policy class.
+}
+\details{
+Versions up to 0.2.1 used \eqn{\delta M + C M\sqrt{(v\log n + \log(1/\xi))/n}},
+which omitted the factor 4 on the deficiency term and the \eqn{1/\eta} factor.
 }

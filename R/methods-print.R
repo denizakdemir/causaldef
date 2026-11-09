@@ -146,6 +146,12 @@ print.policy_bound <- function(x, ...) {
     cat("* Delta selection:", selection_label, "\n")
   }
   cat("* Utility range: [", x$utility_range[1], ", ", x$utility_range[2], "]\n", sep = "")
+  if (!is.null(x$policy_type)) {
+    cat("* Policies:", x$policy_type, "with", x$n_actions, "actions\n")
+  }
+  if (!is.null(x$value_error)) {
+    cat("* Value error:", round(x$value_error, 4), "(bound on |simulated - interventional| value)\n")
+  }
   if (!is.null(x$transfer_penalty)) {
     cat("* Transfer penalty:", round(x$transfer_penalty, 4), "(additive regret upper bound)\n")
   } else {
@@ -159,8 +165,10 @@ print.policy_bound <- function(x, ...) {
   }
 
   if (!is.null(x$obs_regret)) {
-    cat("\n* Observed regret:", round(x$obs_regret, 4), "\n")
+    cat("\n* Simulated (adjusted) regret:", round(x$obs_regret, 4), "\n")
     cat("* Interventional bound:", round(x$regret_bound, 4), "\n")
+  } else if (!is.null(x$complexity_penalty) && !is.null(x$regret_bound)) {
+    cat("\n* Regret bound for the empirical welfare maximizer:", round(x$regret_bound, 4), "\n")
   }
   
   penalty <- if (!is.null(x$transfer_penalty)) x$transfer_penalty else x$safety_floor

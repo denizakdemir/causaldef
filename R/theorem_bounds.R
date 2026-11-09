@@ -2,52 +2,68 @@
 # Theorem-Oriented Bounds & Diagnostics (Manuscript-aligned utilities)
 # =============================================================================
 
-#' RKHS Rate Bound (Result 1)
+#' Nonparametric Rate for Back-Door Kernels (Result 1)
 #'
-#' Computes the explicit rate bound stated in Result 1 (finite-sample RKHS rate).
+#' Order-of-magnitude rate for the total-variation estimation error of the
+#' back-door plug-in interventional law (manuscript Remark on nonparametric
+#' rates): \eqn{(n\eta)^{-\beta/(2\beta + d_W + d_Y)}}, up to constants and
+#' logarithmic factors. Here \eqn{n\eta} is the effective number of observations at
+#' the treatment level of interest. For finite outcome spaces use `d_y = 0`.
+#'
+#' Versions up to 0.2.1 returned \eqn{n^{-\beta/(2\beta+d_W)} + \eta^{-1}\sqrt{\log(1/\xi)/n}},
+#' which ignored the outcome dimension and misplaced the positivity constant.
 #'
 #' @param n Sample size.
 #' @param beta Smoothness exponent (\eqn{\beta} in a \eqn{\beta}-H\"older class).
 #' @param d_w Covariate dimension (\eqn{d_W}).
 #' @param eta Positivity constant (\eqn{\eta>0}) such that \eqn{P(A=a|W=w) \ge \eta}.
-#' @param xi Failure probability (\eqn{\xi\in(0,1)}).
+#' @param xi Unused; retained for backward compatibility.
+#' @param d_y Outcome dimension (\eqn{d_Y}); 0 for finite outcome spaces (default).
 #'
-#' @return Numeric rate bound (an O(.) rate; the implicit constant is not pinned down here).
+#' @return Numeric rate (an O(.) rate; constants and log factors are not pinned down).
 #' @export
-rkhs_rate_bound <- function(n, beta, d_w, eta, xi = 0.05) {
+rkhs_rate_bound <- function(n, beta, d_w, eta, xi = 0.05, d_y = 0) {
   checkmate::assert_integerish(n, lower = 1)
   checkmate::assert_number(beta, lower = 0)
   checkmate::assert_integerish(d_w, lower = 1)
   checkmate::assert_number(eta, lower = 0, upper = 1)
   checkmate::assert_number(xi, lower = 0, upper = 1)
+  checkmate::assert_integerish(d_y, lower = 0)
   if (eta == 0) {
     return(Inf)
   }
-  if (xi == 0) {
-    xi <- .Machine$double.eps
-  }
 
-  n <- as.numeric(n)
-  d_w <- as.numeric(d_w)
-
-  n^(-beta / (2 * beta + d_w)) + (1 / eta) * sqrt(log(1 / xi) / n)
+  n_eff <- as.numeric(n) * eta
+  (n_eff)^(-beta / (2 * beta + as.numeric(d_w) + as.numeric(d_y)))
 }
 
-#' Policy Regret Bound with VC Term (Result 3)
+#' Finite-Sample Policy Regret Bound with VC Term (Result 3)
 #'
-#' Extends `policy_regret_bound()` with the explicit VC-complexity penalty from
-#' Result 3: \eqn{C M \sqrt{(VC(\Pi)\log n + \log(1/\xi))/n}}.
+#' Regret bound for the empirical welfare maximizer under inverse propensity
+#' weighting with a known propensity in \eqn{[\eta, 1-\eta]} (binary treatment),
+#' following the manuscript's Finite-Sample Policy Regret Transfer theorem:
+#' \deqn{Regret_{do}(\hat\pi_n) \le 4M\delta + C\frac{M}{\eta}\left(\sqrt{\frac{v}{n}} + \sqrt{\frac{\log(1/\xi)}{n}}\right),}
+#' where \eqn{\delta} is the worst-case error of the back-door kernels used and
+#' \eqn{v} is the VC dimension of the policy class.
+#'
+#' Versions up to 0.2.1 used \eqn{\delta M + C M\sqrt{(v\log n + \log(1/\xi))/n}},
+#' which omitted the factor 4 on the deficiency term and the \eqn{1/\eta} factor.
 #'
 #' @param deficiency A `deficiency` object or numeric \eqn{\delta}.
 #' @param vc_dim VC dimension of the policy class.
 #' @param n Sample size used to learn the policy.
 #' @param xi Failure probability (\eqn{\xi}).
 #' @param utility_range Numeric vector c(min, max) of utility bounds.
-#' @param obs_regret Optional observed regret under the observational regime.
+#' @param obs_regret Deprecated and ignored: the bound applies to the empirical
+#'   welfare maximizer, whose simulated regret is controlled by the complexity term.
 #' @param delta_mode Passed through to `policy_regret_bound()` when `deficiency` is an object.
-#' @param C Constant multiplying the VC-complexity penalty (default 2; not derived from first principles here).
+#' @param C Absolute constant multiplying the statistical term. It is not pinned down
+#'   by the theorem; the default 2 is illustrative.
+#' @param eta Overlap constant: the known propensity satisfies
+#'   \eqn{\eta \le P(A=1|W) \le 1-\eta}. Required.
 #'
-#' @return An object of class `policy_bound` with additional field `complexity_penalty`.
+#' @return An object of class `policy_bound` with additional field `complexity_penalty`;
+#'   `regret_bound` equals `transfer_penalty + complexity_penalty`.
 #' @export
 policy_regret_bound_vc <- function(deficiency,
                                    vc_dim,
@@ -56,32 +72,46 @@ policy_regret_bound_vc <- function(deficiency,
                                    utility_range = c(0, 1),
                                    obs_regret = NULL,
                                    delta_mode = c("point", "upper"),
-                                   C = 2) {
+                                   C = 2,
+                                   eta = NULL) {
   checkmate::assert_number(vc_dim, lower = 0)
   checkmate::assert_integerish(n, lower = 1)
   checkmate::assert_number(xi, lower = 0, upper = 1)
   checkmate::assert_number(C, lower = 0)
+  if (is.null(eta)) {
+    cli::cli_abort(c(
+      "{.arg eta} is required.",
+      "i" = "The finite-sample bound needs the overlap constant: a known propensity in [eta, 1 - eta].",
+      "i" = "Versions up to 0.2.1 omitted it; see NEWS for the corrected bound."
+    ))
+  }
+  checkmate::assert_number(eta, lower = 0, upper = 0.5)
+  if (!is.null(obs_regret)) {
+    cli::cli_warn("{.arg obs_regret} is ignored by {.fn policy_regret_bound_vc}; the bound applies to the empirical welfare maximizer.")
+  }
 
   base <- policy_regret_bound(
     deficiency = deficiency,
     utility_range = utility_range,
-    obs_regret = obs_regret,
-    delta_mode = delta_mode
+    obs_regret = NULL,
+    delta_mode = delta_mode,
+    n_actions = 2,
+    policy_type = "covariate"
   )
 
   if (xi == 0) {
     xi <- .Machine$double.eps
   }
-
-  n <- as.numeric(n)
-  vc_dim <- as.numeric(vc_dim)
-
-  complexity_penalty <- C * base$M * sqrt((vc_dim * log(n) + log(1 / xi)) / n)
-  base$complexity_penalty <- complexity_penalty
-
-  if (!is.null(base$regret_bound)) {
-    base$regret_bound <- base$regret_bound + complexity_penalty
+  if (eta == 0) {
+    complexity_penalty <- Inf
+  } else {
+    n <- as.numeric(n)
+    complexity_penalty <- C * (base$M / eta) *
+      (sqrt(as.numeric(vc_dim) / n) + sqrt(log(1 / xi) / n))
   }
+  base$complexity_penalty <- complexity_penalty
+  base$eta <- eta
+  base$regret_bound <- base$transfer_penalty + complexity_penalty
 
   class(base) <- unique(c("policy_bound_vc", class(base)))
   base

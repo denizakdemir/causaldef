@@ -2,11 +2,14 @@
 # Tests for theorem-aligned utilities (Results 1, 3, 4, 6, 8)
 # =============================================================================
 
-test_that("rkhs_rate_bound decreases with n", {
+test_that("rkhs_rate_bound decreases with n and matches the corrected rate", {
   b1 <- rkhs_rate_bound(n = 200, beta = 1, d_w = 1, eta = 0.2, xi = 0.05)
   b2 <- rkhs_rate_bound(n = 800, beta = 1, d_w = 1, eta = 0.2, xi = 0.05)
   expect_true(is.finite(b1) && is.finite(b2))
   expect_gt(b1, b2)
+  expect_equal(b1, (200 * 0.2)^(-1 / 3), tolerance = 1e-12)
+  expect_equal(rkhs_rate_bound(n = 200, beta = 1, d_w = 1, eta = 0.2, d_y = 1),
+               (200 * 0.2)^(-1 / 4), tolerance = 1e-12)
 })
 
 test_that("wasserstein_deficiency_gaussian matches closed form", {
@@ -30,15 +33,23 @@ test_that("partial_id_set uses correct half-widths", {
   expect_equal(ate_set$half_width, 0.4, tolerance = 1e-12)
 })
 
-test_that("policy_regret_bound_vc adds a complexity penalty", {
+test_that("policy_regret_bound_vc matches the corrected finite-sample theorem", {
   b <- policy_regret_bound_vc(deficiency = 0.1, vc_dim = 2, n = 1000, xi = 0.05,
-                              utility_range = c(0, 1), obs_regret = 0.2, C = 2)
+                              utility_range = c(0, 1), C = 2, eta = 0.2)
   expect_s3_class(b, "policy_bound")
-  expect_true(!is.null(b$complexity_penalty))
-  expect_true(b$complexity_penalty > 0)
-  expect_equal(b$transfer_penalty, 0.1, tolerance = 1e-12)
-  expect_equal(b$minimax_floor, 0.05, tolerance = 1e-12)
-  expect_equal(b$regret_bound, 0.2 + b$transfer_penalty + b$complexity_penalty, tolerance = 1e-12)
+  expect_equal(b$transfer_penalty, 4 * 0.1, tolerance = 1e-12)
+  expect_equal(b$minimax_floor, 0.025, tolerance = 1e-12)
+  expected_cp <- 2 * (1 / 0.2) * (sqrt(2 / 1000) + sqrt(log(1 / 0.05) / 1000))
+  expect_equal(b$complexity_penalty, expected_cp, tolerance = 1e-12)
+  expect_equal(b$regret_bound, b$transfer_penalty + b$complexity_penalty, tolerance = 1e-12)
+})
+
+test_that("policy_regret_bound_vc requires eta and ignores obs_regret", {
+  expect_error(policy_regret_bound_vc(deficiency = 0.1, vc_dim = 2, n = 1000), "eta")
+  expect_warning(
+    policy_regret_bound_vc(deficiency = 0.1, vc_dim = 2, n = 1000, eta = 0.2, obs_regret = 0.1),
+    "ignored"
+  )
 })
 
 test_that("overlap_diagnostic returns propensity summaries and ESS", {

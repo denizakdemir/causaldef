@@ -1,3 +1,38 @@
+# causaldef 0.3.0
+
+## Corrections to decision-theoretic bounds (numerical outputs change)
+
+A full re-check of the companion manuscript found that two constants used by the
+policy-bound utilities were wrong; counterexamples are in the manuscript (Zenodo
+concept DOI 10.5281/zenodo.18367346, version 5).
+
+* **`policy_regret_bound()`**: the transfer penalty is now
+  2·|A|·M·δ (4Mδ for a binary treatment with covariate-dependent
+  policies; 2Mδ when comparing fixed actions via `policy_type = "constant"`). Versions
+  up to 0.2.1 reported Mδ, which does not bound the regret: with two actions and no
+  covariates the worst-case regret can be 2Mδ while the simulated regret is 0. The
+  minimax floor is now (M/4)δ (previously (M/2)δ, which is false; 1/4 is sharp). New
+  arguments `n_actions` and `policy_type`; new fields `value_error`,
+  `transfer_multiplier` and `floor_multiplier`. `obs_regret` is the regret computed
+  under the adjusted (simulated) interventional laws.
+* **`policy_regret_bound_vc()`**: now implements the corrected finite-sample bound for
+  inverse-propensity-weighted empirical welfare maximization with a known propensity
+  in [η, 1 − η]: 4Mδ + C (M/η)(√(v/n) + √(log(1/ξ)/n)). The new argument `eta` is
+  required. `obs_regret` is ignored, with a warning.
+* **`rkhs_rate_bound()`**: now returns the rate (nη)^(−β/(2β + d_W + d_Y)), with the new
+  argument `d_y` (0 for finite outcome spaces). The previous formula ignored the
+  outcome dimension and misplaced η. `xi` is retained but unused.
+* **`plot.policy_bound()`** (`type = "safety_curve"`) and the plumber `/policy-bound`
+  endpoint use the corrected constants.
+* **`confounding_frontier()` documentation**: the closed-form lower bound now shows the
+  factor 1/2 from the two-point method. The computed frontier was already correct.
+
+## Other
+
+* The `confounding_frontier()` examples use smaller grids, so they run in about 2.5 s instead of 16 s.
+* The manuscript is cited by its concept DOI 10.5281/zenodo.18367346, which always
+  resolves to the latest version.
+
 # causaldef 0.2.1
 
 ## Bug Fixes

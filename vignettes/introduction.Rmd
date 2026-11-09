@@ -162,9 +162,9 @@ print(bounds)
 
 The bounds answer: *"How much regret could confounding add to my decision, and what regret is unavoidable?"*
 
-- **Transfer penalty = $M\cdot\delta$**: additive worst-case inflation term in the regret transfer bound  
+- **Transfer penalty = $2|\mathcal{A}|M\cdot\delta$** ($4M\delta$ for a binary treatment): additive worst-case inflation term in the regret transfer bound  
   - If transfer penalty = 0.2 on a 0--10 utility scale, confounding could add up to 0.2 units of regret in the worst case.
-- **Minimax safety floor = $(M/2)\cdot\delta$**: irreducible worst-case regret when $\delta>0$  
+- **Minimax safety floor = $(M/4)\cdot\delta$**: irreducible worst-case regret when $\delta>0$  
   - Even the best possible algorithm cannot guarantee worst-case regret smaller than this floor without stronger assumptions or randomized data.
 
 When `results` comes from `estimate_deficiency()`, these are plug-in bounds based on the PS-TV proxy rather than an identified exact deficiency.

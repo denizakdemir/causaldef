@@ -152,20 +152,26 @@ function(data, treatment, outcome, covariates = NULL,
 #* @param delta:num Deficiency estimate
 #* @param utility_min:num Minimum utility value
 #* @param utility_max:num Maximum utility value
-#* @param obs_regret:num Observed regret (optional)
+#* @param obs_regret:num Simulated (adjusted) regret (optional)
+#* @param n_actions:int Number of actions (default 2)
+#* @param policy_type:str "covariate" (default) or "constant"
 #* @post /policy-bound
-function(delta, utility_min = 0, utility_max = 1, obs_regret = NULL) {
+function(delta, utility_min = 0, utility_max = 1, obs_regret = NULL,
+         n_actions = 2, policy_type = "covariate") {
   
   tryCatch({
-    M <- utility_max - utility_min
-    transfer_penalty <- M * as.numeric(delta)
-    minimax_floor <- 0.5 * M * as.numeric(delta)
+    M <- as.numeric(utility_max) - as.numeric(utility_min)
+    k <- if (identical(policy_type, "constant")) 1 else as.numeric(n_actions)
+    transfer_penalty <- 2 * k * M * as.numeric(delta)
+    minimax_floor <- 0.25 * M * as.numeric(delta)
     safety_floor <- transfer_penalty
     
     result <- list(
       success = TRUE,
       delta = as.numeric(delta),
       M = M,
+      n_actions = as.integer(n_actions),
+      policy_type = policy_type,
       safety_floor = safety_floor,
       transfer_penalty = transfer_penalty,
       minimax_floor = minimax_floor

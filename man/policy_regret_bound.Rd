@@ -10,7 +10,9 @@ policy_regret_bound(
   obs_regret = NULL,
   policy_class = NULL,
   delta_mode = c("point", "upper"),
-  method = NULL
+  method = NULL,
+  n_actions = 2,
+  policy_type = c("covariate", "constant")
 )
 }
 \arguments{
@@ -18,7 +20,9 @@ policy_regret_bound(
 
 \item{utility_range}{Numeric vector c(min, max) of utility bounds}
 
-\item{obs_regret}{Numeric: observed regret from policy on observational data (optional)}
+\item{obs_regret}{Numeric: regret of the policy computed under the simulated
+(adjusted) interventional laws, i.e. the regret the analyst can evaluate from
+observational data after adjustment (optional)}
 
 \item{policy_class}{Character: description of policy class (for reporting)}
 
@@ -31,14 +35,27 @@ policy_regret_bound(
 \item{method}{Character: when \code{deficiency} is a \code{deficiency} object, which fitted
 method to use when translating the estimate into a regret bound. Strongly
 recommended whenever multiple methods were compared.}
+
+\item{n_actions}{Integer: number of actions \eqn{|\mathcal{A}|} (default 2, a
+binary treatment).}
+
+\item{policy_type}{Character: \code{"covariate"} (default) for policies that choose
+the action as a function of covariates, or \code{"constant"} for comparing fixed
+actions (e.g. treat-all vs treat-none), where the factor \eqn{|\mathcal{A}|}
+is not needed.}
 }
 \value{
 Object of class "policy_bound" containing:
 \itemize{
 \item regret_bound: Upper bound on interventional regret (if obs_regret provided)
+\item value_error: Bound on the error of any policy's simulated value,
+\eqn{|\mathcal{A}| M\delta} (covariate policies) or \eqn{M\delta} (constant policies)
+\item transfer_penalty: Additive regret penalty \eqn{= 2 \times} value_error
 \item safety_floor: Backward-compatible alias for transfer_penalty
-\item transfer_penalty: Additive regret penalty = M*\eqn{\delta}
-\item minimax_floor: Minimax lower bound = (M/2)*\eqn{\delta}
+\item minimax_floor: Minimax lower bound \eqn{= (M/4)\delta}
+\item transfer_multiplier, floor_multiplier: the factors multiplying
+\eqn{M\delta} in transfer_penalty and minimax_floor
+\item n_actions, policy_type: as supplied
 \item delta: Deficiency value used
 \item delta_selection: How the \eqn{\delta} value was selected
 \item utility_range: Range of utility function
@@ -46,24 +63,33 @@ Object of class "policy_bound" containing:
 }
 }
 \description{
-Given deficiency \eqn{\delta}, computes worst-case bounds on policy regret.
-The bound states: \eqn{Regret_{do} \le Regret_{obs} + M \cdot \delta}
+Given a deficiency \eqn{\delta}, computes the regret transfer penalty and the
+minimax regret floor of the manuscript's Policy Regret Transfer and Minimax
+Safety Floor theorems.
 }
 \details{
-For any policy \eqn{\pi} learned from observational data, the regret bound is:
-\deqn{Regret_{do}(\pi) \leq Regret_{obs}(\pi) + M \cdot \delta}
+Let \eqn{\delta} be the worst-case total-variation error of the kernels used to
+simulate each interventional law. For any policy \eqn{\pi}, the simulated value
+differs from the interventional value by at most \eqn{|\mathcal{A}| M\delta}
+(\eqn{M\delta} for constant policies), and therefore
+\deqn{Regret_{do}(\pi) \leq Regret_{sim}(\pi) + 2|\mathcal{A}| M \delta.}
+The factor 2 cannot be removed in general. Conversely, for utilities in a range
+of width \eqn{M}, every observational learner has worst-case regret at least
+\eqn{(M/4)\delta} for some bounded utility (the "minimax floor"; the constant
+1/4 is sharp).
 
-The "transfer penalty" \eqn{M\delta} quantifies worst-case regret inflation from
-the information gap between observational and interventional experiments.
+Versions up to 0.2.1 reported a transfer penalty of \eqn{M\delta} and a minimax
+floor of \eqn{(M/2)\delta}. Both constants were wrong and were corrected in 0.3.0
+(see NEWS).
+
+When \code{deficiency} comes from \code{\link[=estimate_deficiency]{estimate_deficiency()}} it is a propensity-score
+TV proxy, not the exact deficiency, so the result is a plug-in heuristic.
 
 When a multi-method \code{deficiency} object is supplied, the safest workflow is to
 pre-specify \code{method} before calling \code{policy_regret_bound()}. If \code{method} is omitted,
 the current implementation falls back to the smallest available estimate (or upper
 confidence limit), which is convenient for exploration but optimistic after
 post-selection.
-
-Separately, a minimax lower bound ("minimax floor") of \eqn{(M/2)\delta} holds for
-bounded utilities (see manuscript theorem \code{thm:safety_floor}).
 }
 \section{Implications for Safe AI}{
 
@@ -73,7 +99,6 @@ policies without randomized experimentation.
 }
 
 \examples{
-# From a deficiency estimate
 # From a deficiency estimate
 df <- data.frame(W=rnorm(100), A=rbinom(100,1,0.5), Y=rnorm(100))
 spec <- causal_spec(df, "A", "Y", "W")
@@ -91,7 +116,7 @@ print(bound)
 }
 \references{
 Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-DOI: 10.5281/zenodo.21877511. See \code{thm:policy_regret} (Policy Regret Transfer)
+DOI: 10.5281/zenodo.18367346. See \code{thm:policy_regret} (Policy Regret Transfer)
 and \code{thm:safety_floor} (Minimax Safety Floor).
 }
 \seealso{

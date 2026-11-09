@@ -236,8 +236,10 @@ plot.policy_bound <- function(x, type = c("decomposition", "safety_curve"), ...)
   } else if (type == "safety_curve") {
     # Transfer penalty / minimax floor as function of delta
     delta_seq <- seq(0, 1, length.out = 100)
-    transfer_seq <- x$M * delta_seq
-    minimax_seq <- 0.5 * x$M * delta_seq
+    tm <- if (!is.null(x$transfer_multiplier)) x$transfer_multiplier else 4
+    fm <- if (!is.null(x$floor_multiplier)) x$floor_multiplier else 0.25
+    transfer_seq <- tm * x$M * delta_seq
+    minimax_seq <- fm * x$M * delta_seq
     
     df <- data.frame(delta = delta_seq, transfer = transfer_seq, minimax = minimax_seq)
     
@@ -267,8 +269,8 @@ plot.policy_bound <- function(x, type = c("decomposition", "safety_curve"), ...)
       points_df <- data.frame(
         method = names(x$all_estimates),
         delta = as.numeric(x$all_estimates),
-        transfer = x$M * as.numeric(x$all_estimates),
-        minimax = 0.5 * x$M * as.numeric(x$all_estimates)
+        transfer = tm * x$M * as.numeric(x$all_estimates),
+        minimax = fm * x$M * as.numeric(x$all_estimates)
       )
       
       p <- p + ggplot2::geom_point(

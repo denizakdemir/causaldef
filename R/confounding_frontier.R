@@ -28,7 +28,7 @@
 #' The manuscript's Confounding Lower Bound theorem (`thm:confounding_lb`, corrected
 #' 2026-08-09 - the original stated form used an unverified constant and was found to
 #' be false for large \eqn{\sigma_A}) now states:
-#' \deqn{\delta \geq \frac{\Delta(a)}{\sqrt{2\pi}\,\sigma_2}\exp\!\left(-\frac{\Delta(a)^2}{2\sigma_2^2}\right)}
+#' \deqn{\delta \geq \frac{\Delta(a)}{2\sqrt{2\pi}\,\sigma_2}\exp\!\left(-\frac{\Delta(a)^2}{2\sigma_2^2}\right)}
 #' where \eqn{\Delta(a) = |a||\alpha\gamma|/(\alpha^2+\sigma_A^2)} and
 #' \eqn{\sigma_2^2 = \gamma^2\sigma_A^2/(\alpha^2+\sigma_A^2) + \sigma_Y^2} - fully
 #' explicit, no unspecified constant. This function computes the exact
@@ -42,7 +42,7 @@
 #'
 #' @references
 #' Akdemir, D. (2026). Constraints on Causal Inference as Experiment Comparison.
-#' DOI: 10.5281/zenodo.21877511. See `thm:confounding_lb` (Confounding Lower Bound).
+#' DOI: 10.5281/zenodo.18367346. See `thm:confounding_lb` (Confounding Lower Bound).
 #'
 #' @section Interpretation:
 #' \describe{
@@ -58,13 +58,13 @@
 #' frontier <- confounding_frontier(
 #'   alpha_range = c(-2, 2),
 #'   gamma_range = c(-2, 2),
-#'   grid_size = 25
+#'   grid_size = 10
 #' )
 #'
 #' # With data-based parameter estimation
 #' df <- data.frame(A = rnorm(100), Y = rnorm(100), W = rnorm(100))
 #' spec <- causal_spec(df, "A", "Y", "W")
-#' frontier <- confounding_frontier(spec, grid_size = 50)
+#' frontier <- confounding_frontier(spec, grid_size = 15)
 #'
 #' @seealso [estimate_deficiency()], [policy_regret_bound()]
 #' @export
